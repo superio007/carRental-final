@@ -33,6 +33,7 @@
                 <img src="./images/dollar.png" alt="">
                 <img src="./images/hertz.png" alt="">
                 <img src="./images/thrifty.png" alt="">
+                <img style="width:115px;" src="./images/EuroCar.svg" alt="">
             </div>
             <div style="position: relative;height: 7rem;">
                 <img style="position: absolute; right:0; bottom:0;" src="./images/QASHQAI_home_resized.png" alt="">
@@ -49,8 +50,9 @@
                 <img src="./images/dollar.png" alt="">
                 <img src="./images/hertz.png" alt="">
             </div>
-            <div class="d-flex justify-content-center">
+            <div class="d-flex justify-content-evenly">
                 <img src="./images/thrifty.png" alt="">
+                <img style="width:115px;" src="./images/EuroCar.svg" alt="">
             </div>
         </div>
     </div>
