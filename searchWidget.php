@@ -25,7 +25,7 @@ error_reporting(E_ALL);
 <body>
 <?php
     require 'dbconn.php';
-    $sql = "SELECT * FROM car_rental_locations";
+    $sql = "SELECT * FROM combined_rental_location";
     // $sql = "SELECT * FROM airport_list";
     $result = $conn->query($sql);
     function makeApiCall($vendorID, $pickup, $dropOff, $pickUpDateTime, $dropOffDateTime) {
@@ -75,6 +75,44 @@ error_reporting(E_ALL);
 
         return $response;
     }
+    function euroCall($pickupEuro, $dropOffEuro, $pickUpDateTimeEuro, $dropOffDateTimeEuro) {
+        $xmlRequestEuro = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+        <message>
+        <serviceRequest serviceCode=\"getCarCategories\">
+            <serviceParameters>
+            <reservation>
+                <checkout stationID=\"$pickupEuro\" date=\"$pickUpDateTimeEuro\"/>
+                <checkin stationID=\"$dropOffEuro\" date=\"$dropOffDateTimeEuro\"/>
+            </reservation>
+            </serviceParameters>
+        </serviceRequest>
+        </message>
+        ";
+        $ch = curl_init();
+
+        // Set cURL options
+        curl_setopt($ch, CURLOPT_URL, 'https://applications-ptn.europcar.com/xrs/resxml');
+        curl_setopt($ch, CURLOPT_POST, 1);
+
+        // URL-encode the parameters (XML Request, callerCode, and password)
+        $postFields = http_build_query([
+        'XML-Request' => $xmlRequestEuro,
+        'callerCode' => '1132097',
+        'password' => '02092024',
+        ]);
+
+        // Set the POST fields and headers
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/x-www-form-urlencoded',
+        'Accept: text/xml'
+        ]);
+
+        // Execute the cURL request
+        $response = curl_exec($ch);
+        return $response;
+    }
 
     if($_SERVER['REQUEST_METHOD']=="POST" && isset($_POST['search_btn'])){
         $pickup = $_POST['pickCityCode'];
@@ -83,13 +121,26 @@ error_reporting(E_ALL);
         $pickTime = $_POST['pickTime'];
         $dropDate = $_POST['dropDate'];
         $dropTime = $_POST['dropTime'];
+        // Euro details
+        $pickupEuro = $_POST['pickCityCodeEuro'];
+        $dropOffEuro = $_POST['dropCityCodeEuro'];
         
          // Function to convert 12-hour time to 24-hour format
-         function convertTo24HourFormat($time12Hour) {
+        function convertTo24HourFormat($time12Hour) {
             $date = DateTime::createFromFormat('h:i A', $time12Hour);
             return $date->format('H:i:s');
         }
-
+        function convertDateEuro($date_str) {
+            // Convert the string date into a DateTime object using 'm/d/Y' format
+            $date_obj = DateTime::createFromFormat('m/d/Y', $date_str);
+            
+            // Format the DateTime object into the desired format 'Ymd'
+            if ($date_obj) {
+                return $date_obj->format('Ymd');
+            } else {
+                return "Invalid date format!";
+            }
+        }
         // Function to convert date format
         function convertDateFormat($date, $fromFormat, $toFormat) {
             $dateTime = DateTime::createFromFormat($fromFormat, $date);
@@ -102,7 +153,9 @@ error_reporting(E_ALL);
 
         $convertedPickDate = convertDateFormat($pickDate, $fromFormat, $toFormat);
         $convertedDropDate = convertDateFormat($dropDate, $fromFormat, $toFormat);
-
+        // Euro date format
+        $pickUpDateTimeEuro = convertDateEuro($pickDate);
+        $dropOffDateTimeEuro = convertDateEuro($dropDate);
         // Convert the time formats
         $formatPickTime = convertTo24HourFormat($pickTime);
         $formatDropTime = convertTo24HourFormat($dropTime);
@@ -115,18 +168,28 @@ error_reporting(E_ALL);
         $responseZE = makeApiCall('ZE', $pickup, $dropOff, $pickUpDateTime, $dropOffDateTime);
         $responseZR = makeApiCall('ZR', $pickup, $dropOff, $pickUpDateTime, $dropOffDateTime);
         $responseZT = makeApiCall('ZT', $pickup, $dropOff, $pickUpDateTime, $dropOffDateTime);
-
+        $responseEuro = euroCall($pickupEuro, $dropOffEuro, $pickUpDateTimeEuro, $dropOffDateTimeEuro);
         // Combine the responses
-        if (strlen($responseZE) > 500 ||strlen($responseZR) > 500 || strlen($responseZT) > 500) {
+        if (strlen($responseZE) > 500 ||strlen($responseZR) > 500 || strlen($responseZT) > 500 || strlen($responseEuro) > 500) {
             $_SESSION['responseZE'] = $responseZE;
             $_SESSION['responseZR'] = $responseZR;
             $_SESSION['responseZT'] = $responseZT;
+            $_SESSION['responseEuro'] = $responseEuro;
             $dataarray = [
                 'pickUpDateTime' => $pickUpDateTime,
                 'dropOffDateTime' => $dropOffDateTime,
                 'pickLocation' => $pickup,
                 'dropLocation' => $dropOff,
             ];
+            $requiredeuroBooking = [
+                "pickup" => $pickupEuro,
+                "dropOff" =>$dropOffEuro,
+                "pickDate" => $pickUpDateTimeEuro,
+                "dropDate" => $dropOffDateTimeEuro,
+                "pickTime" => $pickTime,
+                "dropTime" => $dropTime
+            ];
+            $_SESSION['requiredeuroBooking'] = $requiredeuroBooking;
             $_SESSION['dataarray'] = $dataarray;
             echo "<script>window.location.href='results.php'</script>";
         } else {
@@ -144,17 +207,17 @@ error_reporting(E_ALL);
             <div class="row">
                 <div class="col-6 d-grid position-relative">
                     <label for="pick">PICK UP LOCATION:</label>
-                    <input type="text" name="pick" id="pickInput" class="form-control" placeholder="Enter city or airport code">
+                    <input type="text" name="pick" id="pickInput" class="form-control" placeholder="Enter city or airport code" autocomplete="off">
                     <input type="hidden" name="pickCityCode" id="pickCityCode"> <!-- Hidden input to store pick-up city code -->
-
+                    <input type="hidden" name="pickCityCodeEuro" id="pickCityCodeEuro"> <!-- Hidden input to store pick-up staion code -->
                     <!-- Suggestion box -->
                     <div id="suggestionBox" class="suggestion-box bg-white border rounded position-absolute" style="display:none;"></div>
                 </div>
                 <div class="col-6 d-grid position-relative">
                     <label for="drop">DROP OFF LOCATION:</label>
-                    <input type="text" name="drop" id="dropInput" class="form-control" placeholder="Enter city or airport code">
+                    <input type="text" name="drop" id="dropInput" class="form-control" placeholder="Enter city or airport code" autocomplete="off">
                     <input type="hidden" name="dropCityCode" id="dropCityCode"> <!-- Hidden input to store drop-off city code -->
-
+                    <input type="hidden" name="dropCityCodeEuro" id="dropCityCodeEuro"> <!-- Hidden input to store pick-up Station code -->
                     <!-- Suggestion box for drop-off locations -->
                     <div id="dropSuggestionBox" class="suggestion-box bg-white border rounded position-absolute" style="display:none;"></div>
                 </div>
@@ -199,12 +262,14 @@ error_reporting(E_ALL);
                     <label for="mobile_pick">Pick Up Location:</label>
                     <input type="text" name="pick" id="mobile_pick" list="airport_name" placeholder="CITY OR AIRPORT CODE" autocomplete="off" class="form-control">
                     <input type="hidden" name="pickCityCode" id="mobile_pickCityCode">
+                    <input type="hidden" name="pickCityCodeEuro" id="mobile_pickCityCodeEuro">
                     <div id="suggestionBox-mobile" class="suggestionBox-mobile bg-white border rounded position-absolute" style="display:none;"></div>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="mobile_drop">Drop Off Location:</label>
                     <input type="text" name="drop" id="mobile_drop" list="airport_name" placeholder="CITY OR AIRPORT CODE" autocomplete="off" class="form-control">
                     <input type="hidden" name="dropCityCode" id="mobile_dropCityCode">
+                    <input type="hidden" name="dropCityCodeEuro" id="mobile_dropCityCodeEuro">
                     <div id="drop-suggestionBox-mobile" class="drop-suggestionBox-mobile bg-white border rounded position-absolute" style="display:none;"></div>
                 </div>
             </div>
@@ -280,24 +345,29 @@ error_reporting(E_ALL);
                                 `);
 
                                 cityStations.forEach(function(station) {
+                                    
                                     $('#suggestionBox').append(`
-                                        <div class="suggestion-item" data-code="${station.stationCode}">
+                                        <div class="suggestion-item" data-citycode="${station.stationCode}" data-station="${station.stationCodeEuro}">
                                             ${station.stationName}
                                         </div>
                                     `);
+                                    console.log(station);
                                 });
                             });
-
+                            // Hide the suggestion box when a suggestion item is clicked
                             // Handle click on suggestion items
                             $('.suggestion-item').on('click', function() {
                                 var stationName = $(this).text().trim();
-                                var stationCode = $(this).data('code');
+                                var stationCode = $(this).data('citycode');
+                                var stationCodeEuro = $(this).data('station');
+                                console.log(stationCodeEuro);
 
                                 $('#pickInput').val(stationName);
                                 $('#pickCityCode').val(stationCode);
+                                $('#pickCityCodeEuro').val(stationCodeEuro);
                                 $('#dropInput').val(stationName);
                                 $('#dropCityCode').val(stationCode);
-
+                                $('#dropCityCodeEuro').val(stationCodeEuro);
                                 $('#suggestionBox').hide();
                             });
                         }
@@ -352,10 +422,11 @@ error_reporting(E_ALL);
 
                                 cityStations.forEach(function(station) {
                                     $('#suggestionBox-mobile').append(`
-                                        <div class="suggestion-item-mobile" data-code="${station.stationCode}">
+                                        <div class="suggestion-item-mobile" data-code="${station.stationCode}" data-station="${station.stationCodeEuro}">
                                             ${station.stationName}
                                         </div>
                                     `);
+                                    console.log(station);
                                 });
                             });
 
@@ -363,12 +434,13 @@ error_reporting(E_ALL);
                             $('.suggestion-item-mobile').on('click', function() {
                                 var stationName = $(this).text().trim();
                                 var stationCode = $(this).data('code');
-
+                                var stationCodeEuro = $(this).data('station');
                                 $('#mobile_pick').val(stationName);
                                 $('#mobile_pickCityCode').val(stationCode);
+                                $('#mobile_pickCityCodeEuro').val(stationCodeEuro);
                                 $('#mobile_drop').val(stationName);
                                 $('#mobile_dropCityCode').val(stationCode);
-
+                                $('#mobile_dropCityCodeEuro').val(stationCodeEuro);
                                 $('#suggestionBox-mobile').hide();
                             });
                         }
@@ -422,7 +494,7 @@ error_reporting(E_ALL);
 
                                 cityStations.forEach(function(station) {
                                     $('#dropSuggestionBox').append(`
-                                        <div class="suggestion-item" data-code="${station.stationCode}">
+                                        <div class="suggestion-item" data-code="${station.stationCode}" data-station="${station.stationCodeEuro}>
                                             ${station.stationName}
                                         </div>
                                     `);
@@ -433,10 +505,11 @@ error_reporting(E_ALL);
                             $('.suggestion-item').on('click', function() {
                                 var stationName = $(this).text().trim();
                                 var stationCode = $(this).data('code');
+                                var stationCodeEuro = $(this).data('station');
 
                                 $('#dropInput').val(stationName);
                                 $('#dropCityCode').val(stationCode);
-
+                                $('#dropCityCodeEuro').val(stationCodeEuro);
                                 $('#dropSuggestionBox').hide();
                             });
                         }
@@ -490,7 +563,7 @@ error_reporting(E_ALL);
 
                                 cityStations.forEach(function(station) {
                                     $('#drop-suggestionBox-mobile').append(`
-                                        <div class="drop-suggestion-item-mobile" data-code="${station.stationCode}">
+                                        <div class="drop-suggestion-item-mobile" data-code="${station.stationCode}" data-station="${station.stationCodeEuro}">
                                             ${station.stationName}
                                         </div>
                                     `);
@@ -500,10 +573,10 @@ error_reporting(E_ALL);
                             $('.drop-suggestion-item-mobile').on('click', function() {
                                 var stationName = $(this).text().trim();
                                 var stationCode = $(this).data('code');
-
+                                var stationCodeEuro = $(this).data('station');
                                 $('#mobile_drop').val(stationName);
                                 $('#mobile_dropCityCode').val(stationCode);
-
+                                $('#mobile_dropCityCodeEuro').val(stationCodeEuro);
                                 $('#drop-suggestionBox-mobile').hide();
                             });
                         }

@@ -5,7 +5,7 @@ if (isset($_POST['searchTerm'])) {
     $searchTerm = $_POST['searchTerm'];
 
     // Query to search for stations matching the input
-    $stmt = $conn->prepare("SELECT citycode, cityaddress, city FROM car_rental_locations WHERE city LIKE ?");
+    $stmt = $conn->prepare("SELECT citycode, cityaddress, city ,stationCode FROM combined_rental_location WHERE groupName LIKE ?");
     $searchTerm = "%$searchTerm%";
     $stmt->bind_param("s", $searchTerm);
     $stmt->execute();
@@ -16,7 +16,8 @@ if (isset($_POST['searchTerm'])) {
         $stations[] = [
             'stationCode' => $row['citycode'],
             'stationName' => $row['cityaddress'],
-            'city' => $row['city']
+            'city' => $row['city'],
+            'stationCodeEuro'=> $row['stationCode'] 
         ];
     }
 

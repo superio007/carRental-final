@@ -25,6 +25,11 @@ session_start();
     // var_dump($responseZT);
     $responseZR = $_SESSION['responseZR'];
     // var_dump($responseZR);
+    if (!empty($_SESSION['responseEuro'])) {
+        $xmlresEuro = new SimpleXMLElement($_SESSION['responseEuro']);
+    } else {
+        echo "No XML response available in session.";
+    }
     $dataArray = $_SESSION['dataarray'];
     // var_dump($dataArray);
     require "dbconn.php";
@@ -72,6 +77,56 @@ session_start();
         'VanPeopleCarrier' => [2], // Not in the XML
         '7-12PassengerVans' => [2] // Not in the XML
     ];
+    $categoriesEuro = [
+        'Economy' => ['CDAR','XZAR'], // Replace with actual car codes for Economy
+        'Compact' => ['CFAR', 'DFAR', 'CDAR','XZAR'],
+        'Midsize' => ['IDAR','ICAE','ICAR','IDAE','IFAR','XZAR'],
+        'Luxury/Sports Car' => ['JDAR', 'LDAR', 'DFFR', 'SFGV','FDFE','LFAE','PZAR'],
+        'SUV' => ['SFAR', 'JFAR','SFAH','SFBD','SFBR','SFDR','GFAR','FFAR','UFAD','XZAR'],
+        'Station Wagon' => ['FWAR','GWAR','FWAR','XZAR'],
+        'Van/People Carrier' => ['PVAR','PVAV','KMLW','KPLW','XZAR'],
+        '7-12 Passenger Vans' => ['UFAD','XZAR'] // Replace with actual codes if necessary
+    ];
+    //function to display Euro Cars
+    function extractVehicleDetailsEuro($xmlResponse, $categoriesEuro)
+    {
+        $vehicleDetails = [];
+
+        if (isset($xmlResponse->serviceResponse->carCategoryList->carCategory)) {
+            // Iterate over the carCategory elements
+            foreach ($xmlResponse->serviceResponse->carCategoryList->carCategory as $vehicle) {
+                // Extract relevant vehicle details
+                $code = (string)$vehicle['carCategoryCode']; // Car category code
+                $name = (string)$vehicle['carCategoryName']; // Car category name
+                $seats = (int)$vehicle['carCategorySeats'];  // Number of seats
+                $baggage = (int)$vehicle['carCategoryBaggageQuantity']; // Baggage capacity
+                $rate = (float)$vehicle['carCategoryPowerHP']; // Example: power as a stand-in for rate (replace with actual rate data if available)
+                $currency = "USD"; // Placeholder, as currency is not in the response (modify accordingly)
+                $co2 = (int)$vehicle['carCategoryCO2Quantity']; // CO2 emissions
+                $fuelType = (string)$vehicle['fuelTypeCode']; // Fuel type
+
+                // Match vehicles based on the category provided in $categories (for example, carCategoryCode)
+                foreach ($categoriesEuro as $category => $codes) {
+                    if (in_array($code, $codes)) {
+                        // Add vehicle details to the result array
+                        $vehicleDetails[$category][] = [
+                            'name' => $name,
+                            'code' => $code,
+                            'seats' => $seats,
+                            'baggage' => $baggage,
+                            'rate' => $rate, // Replace this with actual rate data if available
+                            'currency' => $currency,
+                            'co2' => $co2,
+                            'fuelType' => $fuelType,
+                        ];
+                    }
+                }
+            }
+        }
+
+        return $vehicleDetails;
+    }
+    //function to display Hertz,doller and thrifty Cars
     function extractVehicleDetails($xmlResponse, $categories)
     {
         $vehicleDetails = [];
@@ -114,6 +169,7 @@ session_start();
     }
     // echo $markUp;
     $conn->close();
+    $vehicleDetailsEuro = extractVehicleDetailsEuro($responseEuro, $categoriesEuro);
     $vehicleDetailsZE = extractVehicleDetails($xmlresZE, $categories);
     $vehicleDetailsZT = extractVehicleDetails($xmlresZT, $categories);
     $vehicleDetailsZR = extractVehicleDetails($xmlresZR, $categories);
@@ -129,6 +185,43 @@ session_start();
         $percentage = ($total * $part) / 100;
         return $percentage + $og;
     }
+    //To filter Euro car's based on filters 
+    function filterVehicles($xmlresEuro, $transmission = '', $doors = '', $fuelTypes = []) {
+        $vehicleDetails = []; // Array to store filtered vehicles
+    
+        // Loop through the car categories provided in the XML
+        foreach ($xmlresEuro->serviceResponse->carCategoryList->carCategory as $vehicle) {
+            $matches = true; // Flag to track if the vehicle matches all conditions
+    
+            // Filter by transmission (automatic or manual)
+            if ($transmission === 'Automatic' && (string)$vehicle['carCategoryAutomatic'] !== "Y") {
+                $matches = false;
+            } elseif ($transmission === 'Manual' && (string)$vehicle['carCategoryAutomatic'] !== "N") {
+                $matches = false;
+            }
+    
+            if ($doors === '4+') {
+                // Check if the vehicle has 4 or more doors
+                if ((int)$vehicle['carCategoryDoors'] < 4) {
+                    $matches = false;
+                }
+            } elseif ($doors && (string)$vehicle['carCategoryDoors'] !== $doors) {
+                $matches = false;
+            }
+    
+            // Filter by fuel type
+            if (!empty($fuelTypes) && !in_array((string)$vehicle['carCategoryType'], $fuelTypes)) {
+                $matches = false;
+            }
+    
+            // If the vehicle matches all the filters, add it to the result array
+            if ($matches) {
+                $vehicleDetails[] = $vehicle;
+            }
+        }
+    
+        return $vehicleDetails; // Return the filtered vehicle details
+    }
     if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['search'])) {
         // Retrieve form data
         $transmission = isset($_GET['transmission']) ? $_GET['transmission'] : '';
@@ -138,6 +231,27 @@ session_start();
 
         if (isset($transmission)) {
             // Function to filter XML based on the specified criteria
+            $filteredVehicles = filterVehicles($xmlresEuro, $transmission, $doors, $fuelTypes); // Filter vehicles
+    
+            // Create the exact XML structure
+            $messageXml = new SimpleXMLElement('<message></message>');
+            $serviceResponse = $messageXml->addChild('serviceResponse');
+            $carCategoryList = $serviceResponse->addChild('carCategoryList');
+    
+            foreach ($filteredVehicles as $vehicle) {
+                // Clone the vehicle's structure and attributes from the original XML
+                $carCategory = $carCategoryList->addChild('carCategory');
+                foreach ($vehicle->attributes() as $key => $value) {
+                    $carCategory->addAttribute($key, $value);
+                }
+            }
+    
+            // Output the filtered XML (keeping the original structure intact)
+            // header('Content-Type: text/xml'); // Ensure correct content type is set
+            // echo "<pre>";
+            // var_dump($messageXml); // Display the XML structure
+            // echo "</pre>";
+            $xmlresEuro = $messageXml;
             function filter($filterContent, $transmission = '', $doors = '', $mileage = '', $fuelTypes = [])
             {
                 $vehicleDetails = [];
@@ -393,6 +507,36 @@ session_start();
                 </tr>
             </thead>
             <tbody>
+                <tr id="Euro">
+                    <th class="d-flex justify-content-center" id="Euro_image">
+                        <img src="./images/EuroCar.svg" alt="">
+                    </th>
+                    <?php
+                    // Loop through categories and display rates
+                    foreach ($categoriesEuro as $category => $codes) {
+                        $found = false; // Track if we find a vehicle in the category
+                        $dataSize = implode(',', $codes); // Dynamically generate the sizes for data-size
+
+                        echo '<td class="text-center" data-size="' . $dataSize . '">';
+
+                        foreach ($xmlresEuro->serviceResponse->carCategoryList->carCategory as $vehicle) {
+                            if (in_array((string)$vehicle['carCategoryCode'], $codes)) {
+                                // Display the rate for the first matching vehicle
+                                $rate = (float)$vehicle['carCategoryPowerHP']; // Replace with actual rate data if different
+                                echo 'AUD ' . $rate;
+                                $found = true;
+                                break; // Only display the first matching vehicle
+                            }
+                        }
+
+                        if (!$found) {
+                            echo 'Not Available';
+                        }
+
+                        echo '</td>';
+                    }
+                    ?>
+                </tr>
                 <tr id="hertz">
                     <th id="hertz_image"><img src="./images/hertz.png" alt=""></th>
                     <?php foreach ($categories as $category => $sizes): ?>
@@ -623,7 +767,7 @@ session_start();
                         </div>';
                     }
                 } else {
-                    echo '<p>No vehicles available</p>';
+                    echo '';
                 }
                 ?>
             </div>
@@ -709,7 +853,7 @@ session_start();
                         </div>';
                     }
                 } else {
-                    echo '<p>No vehicles available</p>';
+                    echo '';
                 }
                 ?>
             </div>
@@ -795,7 +939,7 @@ session_start();
                         </div>';
                     }
                 } else {
-                    echo '<p>No vehicles available</p>';
+                    echo '';
                 }
                 ?>
             </div>
@@ -881,7 +1025,7 @@ session_start();
                         </div>';
                     }
                 } else {
-                    echo '<p>No vehicles available</p>';
+                    echo '';
                 }
                 ?>
             </div>
@@ -969,7 +1113,7 @@ session_start();
                         </div>';
                     }
                 } else {
-                    echo '<p>No vehicles available</p>';
+                    echo '';
                 }
                 var_dump($final);
                 ?>
@@ -1056,7 +1200,184 @@ session_start();
                         </div>';
                     }
                 } else {
-                    echo '<p>No vehicles available</p>';
+                    echo '';
+                }
+                ?>
+            </div>
+        </div>
+    </div>
+    <!-- results cards Euro desktop-->
+    <div class="d-none d-md-block">
+        <div class="container">
+            <div id="vehicle-list-Euro" class="vehicle-list" style="display:none;">
+                <?php
+                if (isset($xmlresEuro->serviceResponse->carCategoryList->carCategory)) {
+                    // Loop through each vehicle in the carCategoryList
+                    foreach ($xmlresEuro->serviceResponse->carCategoryList->carCategory as $vehicle) {
+                        // Extract details as strings or integers as necessary
+                        $name = (string) $vehicle['carCategorySample']; // Vehicle sample name
+                        $passengers = (string) $vehicle['carCategorySeats']; // Number of seats
+                        $luggage = (string) $vehicle['carCategoryBaggageQuantity']; // Baggage capacity
+                        $transmission = (string) $vehicle['carCategoryAutomatic'] === 'Y' ? 'Automatic' : 'Manual'; // Transmission type
+                        $rate = (float) $vehicle['carCategoryPowerHP']; // Use Power HP as a placeholder for rate
+                        $final = calculatePercentage($markUp, $rate); // Calculate markup
+                        $currency = "USD"; // Placeholder for currency
+                        $vendor = "Hertz"; // Example vendor
+                        $image = "https://images.hertz.com/vehicles/220x128/default.jpg"; // Placeholder image
+                        $vendorLogo = "./images/EuroCar.svg"; // Placeholder for vendor logo
+                        $reference = (string) $vehicle['carCategoryCode']; // Car category code as reference
+
+                        // Use the carCategoryCode (e.g., CDAR, CFAR, etc.) as the data-size value
+                        $dataSize = (string) $vehicle['carCategoryCode']; 
+
+                        // Output the vehicle HTML with the correct data-size
+                        echo '
+                        <div class="res_card res_hertz vehicle-item" data-size="' . $dataSize . '">
+                            <div class="row">
+                                <div class="col-4 d-grid">
+                                    <img style="width:20rem;" src="' . $image . '" alt="' . $name . '">
+                                    <img src="' . $vendorLogo . '" alt="' . $vendor . '">
+                                </div>
+                                <div class="col-4">
+                                    <strong>' . $name . '</strong>
+                                    <p>OR SIMILAR | ' . strtoupper($transmission) . ' CLASS</p>
+                                    <div class="d-flex gap-2 my-3">
+                                        <div class="car_spec">' . ucfirst($transmission) . '</div>
+                                        <div class="car_spec">
+                                            <img src="./images/door-icon.png" alt="">' . $passengers . '
+                                        </div>
+                                        <div class="car_spec">
+                                            <img src="./images/person-icon.png" alt="">' . $passengers . '
+                                        </div>
+                                        <div class="car_spec">
+                                            <img src="./images/S-luggage-icon.png" alt="">' . $luggage . '
+                                        </div>
+                                        <div class="car_spec">
+                                            <img src="./images/snow-icon.png" alt="">
+                                        </div>
+                                    </div>
+                                    <div class="car_info mb-1">
+                                        <img src="./images/plane-icon.png" alt="">
+                                        <label for=""> On Airport</label>
+                                    </div>
+                                    <div class="car_info mb-1">
+                                        <img src="./images/km-icon.png" alt="">
+                                        <label for=""> Unlimited Kilometres</label>
+                                    </div>
+                                    <div class="text-primary" style="">
+                                        + Terms and Conditions
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="res_pay">
+                                        <div>
+                                            <p>Insurances Package</p>
+                                            <p>Rates starting at ...</p>
+                                        </div>
+                                        <div>
+                                            <p>' . $currency . ' ' . $final . '</p>
+                                        </div>
+                                    </div>
+                                    <div class="res_pay">
+                                        <div class="d-flex">
+                                            <a href="book.php?reference=' . $reference . '&vdNo=Euro" class="btn btn-primary">BOOK NOW</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>';
+                    }
+                } else {
+                    echo '';
+                }
+                ?>
+            </div>
+        </div>
+    </div>
+    <!-- results cards Euro mobile-->
+    <div class="d-md-none">
+        <div>
+            <div id="vehicle-list-Euro-mobile" class="vehicle-list-mobile container">
+                <?php
+                // Loop through each vehicle in the XML
+                if (isset($xmlresEuro->serviceResponse->carCategoryList->carCategory)) {
+                    // Loop through each vehicle in the carCategoryList
+                    foreach ($xmlresEuro->serviceResponse->carCategoryList->carCategory as $vehicle) {
+                        // Extract details as strings or integers as necessary
+                        $name = (string) $vehicle['carCategorySample']; // Vehicle sample name
+                        $passengers = (string) $vehicle['carCategorySeats']; // Number of seats
+                        $luggage = (string) $vehicle['carCategoryBaggageQuantity']; // Baggage capacity
+                        $transmission = (string) $vehicle['carCategoryAutomatic'] === 'Y' ? 'Automatic' : 'Manual'; // Transmission type
+                        $rate = (float) $vehicle['carCategoryPowerHP']; // Use Power HP as a placeholder for rate
+                        $final = calculatePercentage($markUp, $rate); // Calculate markup
+                        $currency = "USD"; // Placeholder for currency
+                        $vendor = "Hertz"; // Example vendor
+                        $image = "https://images.hertz.com/vehicles/220x128/default.jpg"; // Placeholder image
+                        $vendorLogo = "./images/EuroCar.svg"; // Placeholder for vendor logo
+                        $reference = (string) $vehicle['carCategoryCode']; // Car category code as reference
+
+                        // Use the carCategoryCode (e.g., CDAR, CFAR, etc.) as the data-size value
+                        $dataSize = (string) $vehicle['carCategoryCode']; 
+
+                        // Output the HTML for each vehicle, hide them initially
+                        echo '
+                        <div class="res_card vehicle-item-mobile" data-size="' . $dataSize . '">
+                            <div>
+                                <div class="d-grid">
+                                    <img style="width:20rem;" src="' . $image . '" alt="' . $name . '">
+                                    <img src="' . $vendorLogo . '" alt="' . $vendor . '">
+                                </div>
+                                <div>
+                                    <strong>' . $name . '</strong>
+                                    <p>OR SIMILAR | ' . strtoupper($transmission) . ' CLASS</p>
+                                    <div class="d-flex gap-2 my-3">
+                                        <div class="car_spec">' . ucfirst($transmission) . '</div>
+                                        <div class="car_spec">
+                                            <img src="./images/door-icon.png" alt="">' . $passengers . '
+                                        </div>
+                                        <div class="car_spec">
+                                            <img src="./images/person-icon.png" alt="">' . $passengers . '
+                                        </div>
+                                        <div class="car_spec">
+                                            <img src="./images/S-luggage-icon.png" alt="">' . $luggage . '
+                                        </div>
+                                        <div class="car_spec">
+                                            <img src="./images/snow-icon.png" alt="">
+                                        </div>
+                                    </div>
+                                    <div class="car_info mb-1">
+                                        <img src="./images/plane-icon.png" alt="">
+                                        <label for=""> On Airport</label>
+                                    </div>
+                                    <div class="car_info mb-1">
+                                        <img src="./images/km-icon.png" alt="">
+                                        <label for=""> Unlimited Kilometres</label>
+                                    </div>
+                                    <div class="text-primary" style="">
+                                        + Terms and Conditions
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="res_pay">
+                                        <div>
+                                            <p>Insurances Package</p>
+                                            <p>Rates starting at ...</p>
+                                        </div>
+                                        <div>
+                                            <p>' . $currency . ' ' . $final . '</p>
+                                        </div>
+                                    </div>
+                                    <div class="res_pay">
+                                        <div class="d-flex">
+                                            <a href="book.php?reference=' . $reference . '&vdNo=Euro"; class="btn btn-primary">BOOK NOW</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>';
+                    }
+                } else {
+                    echo '';
                 }
                 ?>
             </div>
