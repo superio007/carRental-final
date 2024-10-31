@@ -1,6 +1,7 @@
 <?php
 session_start();
 $AccessId = $_SESSION['AccessId'];
+$Email = null;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
@@ -21,23 +22,179 @@ require 'vendor/autoload.php';
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <?php
-    include 'dbconn.php';
-    if(!isset($_SESSION['jwtToken'])){
-        echo "<script>window.location.href='login.php';</script>";
+include 'dbconn.php';
+if (!isset($_SESSION['jwtToken'])) {
+    echo "<script>window.location.href='login.php';</script>";
+}
+if (isset($_GET['vdNo'])) {
+    $vdNo = $_GET['vdNo'];
+}
+if (isset($_GET['reference'])) {
+    $reference = $_GET['reference'];
+    $carCategoryCode = $_GET['reference'];
+}
+if ($vdNo == "ZE") {
+    $res = $_SESSION['responseZE'];
+} elseif ($vdNo == "ZT") {
+    $res = $_SESSION['responseZT'];
+} elseif ($vdNo == "Euro") {
+    $responseEuro = $_SESSION['responseEuro'];
+    $vendorLogo = "images\EuroCar.svg";
+} else {
+    $res = $_SESSION['responseZR'];
+}
+$sql = "SELECT MarkupPrice FROM `markup_price`";
+$result = $conn->query($sql);
+
+if ($result->num_rows > 0) {
+    // output data of each row
+    while ($row = $result->fetch_assoc()) {
+        $markUp = $row['MarkupPrice'];
     }
-    if (isset($_GET['vdNo'])) {
-        $vdNo = $_GET['vdNo'];
+} else {
+    echo "0 results";
+}
+function calculatePercentage($part, $total)
+{
+    $og = $total;
+    if ($total == 0) {
+        return "Total cannot be zero"; // To avoid division by zero error
     }
-    if (isset($_GET['reference'])) {
-        $reference = $_GET['reference'];
+    $percentage = ($total * $part) / 100;
+    return $percentage + $og;
+}
+
+if ($vdNo == "Euro") {
+    
+    $xmlres = new SimpleXMLElement($responseEuro);
+    $requiredeuroBooking = $_SESSION['requiredeuroBooking'];
+    $pickup = $requiredeuroBooking['pickup'];
+    $dropOff = $requiredeuroBooking['dropOff'];
+    $pickDate = $requiredeuroBooking['pickDate'];
+    $pickTime = $requiredeuroBooking['pickTime'];
+    $dropDate = $requiredeuroBooking['dropDate'];
+    $dropTime = $requiredeuroBooking['dropTime'];
+    function xmlToArray($xmlObject)
+    {
+        return json_decode(json_encode($xmlObject), true);
     }
-    if ($vdNo == "ZE") {
-        $res = $_SESSION['responseZE'];
-    } elseif ($vdNo == "ZT") {
-        $res = $_SESSION['responseZT'];
+    function filterCarCategoryByCode($xmlData, $carCategoryCode)
+    {
+        // Convert SimpleXMLElement to an array if necessary
+        $carCategories = $xmlData->serviceResponse->carCategoryList->carCategory;
+
+        // Initialize an empty array to hold the filtered car category
+        $filteredCategory = [];
+
+        // Loop through each carCategory in the list
+        foreach ($carCategories as $carCategory) {
+            // Check if the carCategoryCode matches the passed parameter
+            if ((string)$carCategory['carCategoryCode'] === $carCategoryCode) {
+                // Add the matching car category to the filtered array
+                $filteredCategory[] = $carCategory;
+            }
+        }
+
+        // Return the filtered category array
+        return $filteredCategory;
+    }
+    function convertTo24HourFormat($time12Hour)
+    {
+        // Convert the time from 12-hour format to 24-hour format
+        $time24Hour = date("H:i", strtotime($time12Hour));
+
+        // Remove the colon to get the format as 1545 instead of 15:45
+        return str_replace(':', '', $time24Hour);
+    }
+    function extractedData($xmlData,$markUp)
+
+    {
+        foreach ($xmlData as $data) {
+            $name = (string)$data['carCategorySample'];
+            $transmission = ($data['carCategoryAutomatic'] == 'Y') ? "Automatic" : "Manual";
+            $passengers = (string)$data['carCategorySeats'];
+            $luggage = (string)$data['carCategoryBaggageQuantity'];
+            $currency = (string)$data['carCategoryPowerHP'];
+            // Assuming these variables will be used in the HTML below
+            return compact('name', 'transmission', 'passengers', 'luggage', 'currency',);
+        }
+    }
+    $filteredData = filterCarCategoryByCode($xmlres, $carCategoryCode);
+    if (!empty($filteredData)) {
+        $carDetails = extractedData($filteredData, $markUp);
+        $name = $carDetails['name'];
+        $transmission = $carDetails['transmission'];
+        $passengers = $carDetails['passengers'];
+        $luggage = $carDetails['luggage'];
+        $currency = $carDetails['currency'];
+        $final = number_format(calculatePercentage($markUp, $currency), 2);
+        $EuroPrice = $final;
     } else {
-        $res = $_SESSION['responseZR'];
+        $name = $transmission = $passengers = $luggage = $currency = "N/A";
     }
+
+    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        $first_name = $_POST['first_name'] ?? '';
+        $email = $_POST['email'] ?? '';
+        $Email = $email;
+        $last_name = $_POST['last_name'] ?? '';
+        $foramtdropTime = convertTo24HourFormat($dropTime);
+        $foramtpickTime = convertTo24HourFormat($pickTime);
+        // Define the XML request payload
+        $xmlRequest = '<?xml version="1.0" encoding="UTF-8"?>
+        <message>
+        <serviceRequest serviceCode="bookReservation">
+            <serviceParameters>
+            <reservation carCategory="' . $carCategoryCode . '" rateId="RATE_ID">
+                <checkout stationID="' . $pickup . '" date="' . $pickDate . '" time="' . $foramtpickTime . '"/>
+                <checkin stationID="' . $dropOff . '" date="' . $dropDate . '" time="' . $foramtdropTime . '"/>
+            </reservation>
+            <driver countryOfResidence="XX" firstName="Kiran" lastName="Dhoke"/>
+            </serviceParameters>
+        </serviceRequest>
+        </message>
+        ';
+
+        // Prepare the cURL request
+        $ch = curl_init();
+
+        // Postman sends it as `x-www-form-urlencoded`, so we mimic that by wrapping the XML in `XML-Request`
+        $postFields = http_build_query([
+            'XML-Request' => $xmlRequest,
+            'callerCode' => '1132097',
+            'password' => '02092024'
+        ]);
+
+        // Set cURL options
+        curl_setopt($ch, CURLOPT_URL, 'https://applications-ptn.europcar.com/xrs/resxml');
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);  // URL encode the fields
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/x-www-form-urlencoded',
+            'Accept: text/xml'
+        ]);
+
+        // Execute the cURL request
+        $response = curl_exec($ch);
+        echo "<script>alert($response)</script>";  // Check the full response from the API
+
+
+        // Check for cURL errors
+        if (curl_errno($ch)) {
+            echo 'cURL error: ' . curl_error($ch);
+        } else {
+            echo "<pre>";
+            echo htmlspecialchars($response);  // Escape XML characters for display
+            echo "</pre>";
+        }
+    }
+    $filteredData = filterCarCategoryByCode($xmlres, $carCategoryCode);
+    extractedData($filteredData,$markUp);
+    // Convert the SimpleXMLElement to array
+    $xmlArrayBookingInfo = xmlToArray($requiredeuroBooking);
+    $xmlArrayBookingDetails = xmlToArray($responseEuro);
+} else {
     // $res = $_SESSION['results'];
     $dataarray = $_SESSION['dataarray'];
     $xmlres = new SimpleXMLElement($res);
@@ -67,26 +224,6 @@ require 'vendor/autoload.php';
 
         return $filteredResults;
     }
-    $sql = "SELECT MarkupPrice FROM `markup_price`";
-    $result = $conn->query($sql);
-
-    if ($result->num_rows > 0) {
-        // output data of each row
-        while ($row = $result->fetch_assoc()) {
-            $markUp = $row['MarkupPrice'];
-        }
-    } else {
-        echo "0 results";
-    }
-    function calculatePercentage($part, $total)
-    {
-        $og = $total;
-        if ($total == 0) {
-            return "Total cannot be zero"; // To avoid division by zero error
-        }
-        $percentage = ($total * $part) / 100;
-        return $percentage + $og;
-    }
     // Example usage:
     $referenceType = "16";
     $referenceID = $reference;  // Use the ID you want to filter by
@@ -102,7 +239,7 @@ require 'vendor/autoload.php';
         $passengers = $vehicle['VehAvailCore']['Vehicle']['@attributes']['PassengerQuantity'];
         $luggage = $vehicle['VehAvailCore']['Vehicle']['@attributes']['BaggageQuantity'];
         $rate = $vehicle['VehAvailCore']['TotalCharge']['@attributes']['RateTotalAmount'];
-        $final = number_format(calculatePercentage($markUp,$rate), 2);
+        $final = number_format(calculatePercentage($markUp, $rate), 2);
         $currency = $vehicle['VehAvailCore']['TotalCharge']['@attributes']['CurrencyCode'];
         $image = $vehicle['VehAvailCore']['Vehicle']['PictureURL'];
         if ($vdNo == "ZE") {
@@ -116,11 +253,13 @@ require 'vendor/autoload.php';
         echo "No matching vehicle found.";
         exit;
     }
+    
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Capture driver information
         $first_name = $_POST['first_name'] ?? '';
         $last_name = $_POST['last_name'] ?? '';
         $email = $_POST['email'] ?? '';
+        $Email = $email;
         $mobile_number = $_POST['phone'] ?? '';
         $mobile_country_code = $_POST['mobile_country_code'];
 
@@ -212,98 +351,188 @@ require 'vendor/autoload.php';
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
 
-            // Execute cURL request and get the response
+
             $response = curl_exec($ch);
-            // $xmlerr = new SimpleXMLElement($response);
-            // if (isset($xmlerr->errors->error)) {
-            //     echo "
-            //     Swal.fire({
-            //         icon: \"error\",
-            //         title: \"Oops...\",
-            //         text: \"{$xmlerr->errors->error->shorttext}!\",
-            //     });
-            //     ";
-            // }
-
-            if ($response === false) {
-                $error = curl_error($ch);
-                curl_close($ch);
-                die('cURL Error: ' . $error);
-            } else {
-                $xmlres = new SimpleXMLElement($response);
-
-                // Check if the <Success> tag exists
-                if (isset($xmlres->Success)) {
-                    // If <Success> tag is present, print a success message
-                    echo "Success! The vehicle reservation was processed successfully.";
-                    // Retrieve and print the name
-                    $givenName = $xmlres->VehResRSCore->VehReservation->Customer->Primary->PersonName->GivenName;
-                    $surname = $xmlres->VehResRSCore->VehReservation->Customer->Primary->PersonName->Surname;
-
-                    // Retrieve and print the ConfID
-                    $confID = $xmlres->VehResRSCore->VehReservation->VehSegmentCore->ConfID['ID'];
-
-                    // Retrieve and print the car name
-                    $carName = $xmlres->VehResRSCore->VehReservation->VehSegmentCore->Vehicle->VehMakeModel['Name'];
-                    $sql = "INSERT INTO `bookings`(`Id`, `FirstName`, `LastName`, `ConfirmedId`, `CarName`, `AccessId`) VALUES ('','$givenName','$surname','$confID','$carName','$AccessId')";
-
-                    if ($conn->query($sql) === TRUE) {
-                        echo "<script>console.log(\"New record created successfully\")</script>";
-                    } else {
-                        echo "<script>console.log(\"Error: \" . $sql . \"<br>\" . $conn->error\")</script>";
-                    }
-
-                    $conn->close();
-                    // Create an instance of PHPMailer
-                    $mail = new PHPMailer(true);
-
-                    try {
-                        // Server settings
-                        $mail->isSMTP();                                 // Set mailer to use SMTP
-                        $mail->Host       = 'smtp.gmail.com';          // Specify main and backup SMTP servers
-                        $mail->SMTPAuth   = true;                        // Enable SMTP authentication
-                        $mail->Username   = 'dhokekiran98@gmail.com';    // SMTP username
-                        $mail->Password   = 'fzepmsgxliiticxs';       // SMTP password
-                        $mail->SMTPSecure = 'tls';                        // Enable TLS encryption, `ssl` also accepted
-                        $mail->Port       = 587;                         // TCP port to connect to
-
-                        // Recipients
-                        $mail->setFrom("dhokekiran98@gmail.com", "Hertz_Support");
-                        $mail->addAddress($email, $first_name . " " .  $last_name);
-
-                        // Content
-                        $mail->isHTML(true);                            // Set email format to HTML
-                        $mail->Subject = "Confirmation from hertz : $confID";
-                        $mail->Body    = "Passengers given name : $givenName <br> Passengers surname : $surname <br> Car booked : $carName <br> Check details : 
-                        <a href='detail.php?confId=$confID&surname=$surname' 
-                        style='background-color: #ffd207; color:#0d7fa6; padding: 5px; text-decoration: none; border-radius: 5px;'>Click Here</a>
-                        ";
-                        $mail->AltBody = '';
-
-                        if ($mail->send()) {
-                            echo "<script>window.location.href='sucess.php?cnfNo=$confID&lName=$surname&rate=$final'</script>";
-                        }
-                        // echo 'Message has been sent';
-                    } catch (Exception $e) {
-                        echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
-                    }
-                } else {
-                    //if not sucess
-                    echo "<script>
-                            alert('Vehicle is not available, please try again!');
-                            window.location.href = 'index.php';
-                        </script>";
-                    unset($_SESSION['dataarray']);
-                    unset($_SESSION['responseZR']);
-                    unset($_SESSION['responseZT']);
-                    unset($_SESSION['responseZE']);
-                    unset($_SESSION['userInfo']);
-                }
-                // Close cURL session
-                curl_close($ch);
-            }
         }
     }
+}
+if(isset($response)){
+    if($response === false){
+        $error = curl_error($ch);    
+        curl_close($ch);    
+        die('cURL Error: ' . $error);   
+    }else{
+        if($vdNo == "Euro"){
+            $xmlres = new SimpleXMLElement($response);
+            $email = $Email;
+            $final = $EuroPrice;
+            $givenName = $xmlres->serviceResponse->driver['firstName'];
+            $surname = $xmlres->serviceResponse->driver['lastName'];
+            $confID = $xmlres->serviceResponse->reservation['resNumber'];
+            $carName = $xmlres->serviceResponse->reservation['carCategory'];
+            $confirmed = true;
+        }else{
+            $xmlres = new SimpleXMLElement($response);
+            // If <Success> tag is present, print a success message
+            echo "Success! The vehicle reservation was processed successfully.";
+            // Retrieve and print the name
+            $givenName = $xmlres->VehResRSCore->VehReservation->Customer->Primary->PersonName->GivenName;
+            $surname = $xmlres->VehResRSCore->VehReservation->Customer->Primary->PersonName->Surname;
+    
+            // Retrieve and print the ConfID
+            $confID = $xmlres->VehResRSCore->VehReservation->VehSegmentCore->ConfID['ID'];
+    
+            // Retrieve and print the car name
+            $carName = $xmlres->VehResRSCore->VehReservation->VehSegmentCore->Vehicle->VehMakeModel['Name'];
+            $confirmed = true;
+        }
+        if ($confirmed) {
+            
+            $sql = "INSERT INTO `bookings`(`Id`, `FirstName`, `LastName`, `ConfirmedId`, `CarName`, `AccessId`) VALUES ('','$givenName','$surname','$confID','$carName','$AccessId')";
+    
+            if ($conn->query($sql) === TRUE) {
+                echo "<script>console.log(\"New record created successfully\")</script>";
+            } else {
+                echo "<script>console.log(\"Error: \" . $sql . \"<br>\" . $conn->error\")</script>";
+            }
+    
+            $conn->close();
+            // Create an instance of PHPMailer
+            $mail = new PHPMailer(true);
+    
+            try {
+                // Server settings
+                $mail->isSMTP();                                 // Set mailer to use SMTP
+                $mail->Host       = 'smtp.gmail.com';          // Specify main and backup SMTP servers
+                $mail->SMTPAuth   = true;                        // Enable SMTP authentication
+                $mail->Username   = 'dhokekiran98@gmail.com';    // SMTP username
+                $mail->Password   = 'fzepmsgxliiticxs';       // SMTP password
+                $mail->SMTPSecure = 'tls';                        // Enable TLS encryption, `ssl` also accepted
+                $mail->Port       = 587;                         // TCP port to connect to
+    
+                // Recipients
+                $mail->setFrom("dhokekiran98@gmail.com", "Hertz_Support");
+                $mail->addAddress($email, $first_name . " " .  $last_name);
+    
+                // Content
+                $mail->isHTML(true);                            // Set email format to HTML
+                $mail->Subject = "Confirmation from hertz : $confID";
+                $mail->Body    = "Passengers given name : $givenName <br> Passengers surname : $surname <br> Car booked : $carName <br> Check details : 
+                    <a href='detail.php?confId=$confID&surname=$surname' 
+                    style='background-color: #ffd207; color:#0d7fa6; padding: 5px; text-decoration: none; border-radius: 5px;'>Click Here</a>
+                    ";
+                $mail->AltBody = '';
+    
+                if ($mail->send()) {
+                    echo "<script>window.location.href='sucess.php?cnfNo=$confID&lName=$surname&rate=$final'</script>";
+                }
+                // echo 'Message has been sent';
+            } catch (Exception $e) {
+                echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
+            }
+        } else {
+            //if not sucess
+            echo "<script>
+                        alert('Vehicle is not available, please try again!');
+                        window.location.href = 'index.php';
+                    </script>";
+            unset($_SESSION['dataarray']);
+            unset($_SESSION['responseZR']);
+            unset($_SESSION['responseZT']);
+            unset($_SESSION['responseZE']);
+            unset($_SESSION['userInfo']);
+        }
+        // Close cURL session
+        curl_close($ch);
+    }
+}
+
+// if ($response === false) {
+//     $error = curl_error($ch);
+//     curl_close($ch);
+//     die('cURL Error: ' . $error);
+// } else {
+    
+//     if($vdNo == "Euro"){
+
+//         $confirmed = true;
+//     }else{
+//         $xmlres = new SimpleXMLElement($response);
+//         // If <Success> tag is present, print a success message
+//         echo "Success! The vehicle reservation was processed successfully.";
+//         // Retrieve and print the name
+//         $givenName = $xmlres->VehResRSCore->VehReservation->Customer->Primary->PersonName->GivenName;
+//         $surname = $xmlres->VehResRSCore->VehReservation->Customer->Primary->PersonName->Surname;
+
+//         // Retrieve and print the ConfID
+//         $confID = $xmlres->VehResRSCore->VehReservation->VehSegmentCore->ConfID['ID'];
+
+//         // Retrieve and print the car name
+//         $carName = $xmlres->VehResRSCore->VehReservation->VehSegmentCore->Vehicle->VehMakeModel['Name'];
+//         $confirmed = true;
+//     }
+
+//     // Check if the <Success> tag exists
+//     if ($confirmed) {
+        
+//         $sql = "INSERT INTO `bookings`(`Id`, `FirstName`, `LastName`, `ConfirmedId`, `CarName`, `AccessId`) VALUES ('','$givenName','$surname','$confID','$carName','$AccessId')";
+
+//         if ($conn->query($sql) === TRUE) {
+//             echo "<script>console.log(\"New record created successfully\")</script>";
+//         } else {
+//             echo "<script>console.log(\"Error: \" . $sql . \"<br>\" . $conn->error\")</script>";
+//         }
+
+//         $conn->close();
+//         // Create an instance of PHPMailer
+//         $mail = new PHPMailer(true);
+
+//         try {
+//             // Server settings
+//             $mail->isSMTP();                                 // Set mailer to use SMTP
+//             $mail->Host       = 'smtp.gmail.com';          // Specify main and backup SMTP servers
+//             $mail->SMTPAuth   = true;                        // Enable SMTP authentication
+//             $mail->Username   = 'dhokekiran98@gmail.com';    // SMTP username
+//             $mail->Password   = 'fzepmsgxliiticxs';       // SMTP password
+//             $mail->SMTPSecure = 'tls';                        // Enable TLS encryption, `ssl` also accepted
+//             $mail->Port       = 587;                         // TCP port to connect to
+
+//             // Recipients
+//             $mail->setFrom("dhokekiran98@gmail.com", "Hertz_Support");
+//             $mail->addAddress($email, $first_name . " " .  $last_name);
+
+//             // Content
+//             $mail->isHTML(true);                            // Set email format to HTML
+//             $mail->Subject = "Confirmation from hertz : $confID";
+//             $mail->Body    = "Passengers given name : $givenName <br> Passengers surname : $surname <br> Car booked : $carName <br> Check details : 
+//                 <a href='detail.php?confId=$confID&surname=$surname' 
+//                 style='background-color: #ffd207; color:#0d7fa6; padding: 5px; text-decoration: none; border-radius: 5px;'>Click Here</a>
+//                 ";
+//             $mail->AltBody = '';
+
+//             if ($mail->send()) {
+//                 echo "<script>window.location.href='sucess.php?cnfNo=$confID&lName=$surname&rate=$final'</script>";
+//             }
+//             // echo 'Message has been sent';
+//         } catch (Exception $e) {
+//             echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
+//         }
+//     } else {
+//         //if not sucess
+//         echo "<script>
+//                     alert('Vehicle is not available, please try again!');
+//                     window.location.href = 'index.php';
+//                 </script>";
+//         unset($_SESSION['dataarray']);
+//         unset($_SESSION['responseZR']);
+//         unset($_SESSION['responseZT']);
+//         unset($_SESSION['responseZE']);
+//         unset($_SESSION['userInfo']);
+//     }
+//     // Close cURL session
+//     curl_close($ch);
+// }
+
 ?>
 
 <body>
@@ -452,7 +681,11 @@ require 'vendor/autoload.php';
                 <div class="p-3">
                     <div class="d-flex justify-content-between ">
                         <p style="font-size:x-large; font-weight: 700;">Total Rental</p>
-                        <p style="font-size:x-large; font-weight: 700;"><?php echo $currency; ?><?php echo number_format($final, 2); ?></p>
+                        <?php if ($vdNo == "Euro"): ?>
+                            <p style="font-size:x-large; font-weight: 700;"><?php echo number_format($final, 2); ?></p>
+                        <?php else: ?>
+                            <p style="font-size:x-large; font-weight: 700;"><?php echo $currency; ?><?php echo number_format($final, 2); ?></p>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>

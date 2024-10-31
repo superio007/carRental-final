@@ -1,6 +1,32 @@
 body{
     background-color: #f4f7fa;
 }
+/*style */
+
+.table-responsive-x {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: #fff;
+}
+
+.table th,
+.table td {
+    white-space: nowrap; /* Prevent wrapping */
+    min-width: 120px; /* Minimum width to avoid text squishing */
+}
+
+@media (max-width: 768px) {
+    .table-responsive-x {
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    }
+}
+
 /* index */
 #hero h1{
     font-size: 2.4rem;
@@ -65,7 +91,6 @@ footer  a{
 
 /* Common width for all dropdowns */
 details {
-    width: 200px; /* Set equal width for all details */
     margin-right: 1rem; /* Add some spacing between dropdowns */
     position: relative;
     margin-bottom: 1rem;

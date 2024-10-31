@@ -27,6 +27,9 @@ session_start();
     // var_dump($responseZR);
     if (!empty($_SESSION['responseEuro'])) {
         $xmlresEuro = new SimpleXMLElement($_SESSION['responseEuro']);
+        // echo "<pre>";
+        // var_dump($xmlresEuro); // Display the XML structure
+        // echo "</pre>";
     } else {
         echo "No XML response available in session.";
     }
@@ -169,7 +172,7 @@ session_start();
     }
     // echo $markUp;
     $conn->close();
-    $vehicleDetailsEuro = extractVehicleDetailsEuro($responseEuro, $categoriesEuro);
+    $vehicleDetailsEuro = extractVehicleDetailsEuro($xmlresEuro, $categoriesEuro);
     $vehicleDetailsZE = extractVehicleDetails($xmlresZE, $categories);
     $vehicleDetailsZT = extractVehicleDetails($xmlresZT, $categories);
     $vehicleDetailsZR = extractVehicleDetails($xmlresZR, $categories);
@@ -252,6 +255,7 @@ session_start();
             // var_dump($messageXml); // Display the XML structure
             // echo "</pre>";
             $xmlresEuro = $messageXml;
+           
             function filter($filterContent, $transmission = '', $doors = '', $mileage = '', $fuelTypes = [])
             {
                 $vehicleDetails = [];
@@ -409,10 +413,10 @@ session_start();
     <div style="background-color: #ced1d4; height: auto;padding:1rem 0.5rem" class="d-md-none">
         <div>
             <form action="" method="get">
-                <div class="d-flex">
+                <div class="d-flex justify-content-evenly">
                     <div>
                         <details>
-                            <summary class="dropdown">Transmission Types <i class="fa-solid fa-angle-down fa-lg" style="color: #000000;"></i></summary>
+                            <summary class="dropdown" style="width: 170px;">Transmission Types <i class="fa-solid fa-angle-down fa-lg" style="color: #000000;"></i></summary>
                             <div class="shown">
                                 <input type="checkbox" name="transmission" id="automatic-mobile" value="Automatic">
                                 <label for="automatic-mobile" style="font-size: 1rem;">Automatic Only</label><br>
@@ -421,7 +425,7 @@ session_start();
                             </div>
                         </details>
                         <details>
-                            <summary class="dropdown">Fuel Type or Electric <i class="fa-solid fa-angle-down fa-lg" style="color: #000000;"></i></summary>
+                            <summary class="dropdown" style="width: 170px;">Fuel Type or Electric <i class="fa-solid fa-angle-down fa-lg" style="color: #000000;"></i></summary>
                             <div class="shown">
                                 <input type="checkbox" id="diesel-mobile" name="fuelTypes[]" value="Diesel">
                                 <label for="diesel-mobile" style="font-size: 1rem;">Diesel</label><br>
@@ -436,7 +440,7 @@ session_start();
                     </div>
                     <div>
                         <details>
-                            <summary class="dropdown">Mileage <i class="fa-solid fa-angle-down fa-lg" style="color: #000000;"></i></summary>
+                            <summary class="dropdown" style="width: 151px;">Mileage <i class="fa-solid fa-angle-down fa-lg" style="color: #000000;"></i></summary>
                             <div class="shown">
                                 <input type="radio" id="unlimited-mobile" name="mileage" value="Unlimited">
                                 <label for="unlimited-mobile" style="font-size: 1rem;">Unlimited</label><br>
@@ -445,7 +449,7 @@ session_start();
                             </div>
                         </details>
                         <details>
-                            <summary class="dropdown">Doors <i class="fa-solid fa-angle-down fa-lg" style="color: #000000;"></i></summary>
+                            <summary class="dropdown" style="width: 151px;">Doors <i class="fa-solid fa-angle-down fa-lg" style="color: #000000;"></i></summary>
                             <div class="shown">
                                 <input type="radio" id="doors2-mobile" name="doors" value="2">
                                 <label for="doors2-mobile" style="font-size: 1rem;">2</label><br>
@@ -463,7 +467,7 @@ session_start();
         </div>
     </div>
     <!-- price table desktop-->
-    <div id="price_table" class="container d-none d-md-block">
+    <div id="price_table" class="container d-none d-md-block">  
         <table class="table table-bordered my-4">
             <thead>
                 <tr>
@@ -480,10 +484,6 @@ session_start();
                         <img src="./images/midsize.jpg" alt="">
                         <p class="text-center">Midsize</p>
                     </th>
-                    <!-- <th scope="col">
-                        <img src="./images/LargeSize.jpg" alt="">
-                        <p class="text-center">Large Size</p>
-                    </th> -->
                     <th scope="col">
                         <img src="./images/LuxurySportsCar.jpg" alt="">
                         <p class="text-center">Luxury/Sports Car </p>
@@ -516,24 +516,23 @@ session_start();
                     foreach ($categoriesEuro as $category => $codes) {
                         $found = false; // Track if we find a vehicle in the category
                         $dataSize = implode(',', $codes); // Dynamically generate the sizes for data-size
-
                         echo '<td class="text-center" data-size="' . $dataSize . '">';
-
-                        foreach ($xmlresEuro->serviceResponse->carCategoryList->carCategory as $vehicle) {
-                            if (in_array((string)$vehicle['carCategoryCode'], $codes)) {
-                                // Display the rate for the first matching vehicle
-                                $rate = (float)$vehicle['carCategoryPowerHP']; // Replace with actual rate data if different
-                                echo 'AUD ' . $rate;
-                                $found = true;
-                                break; // Only display the first matching vehicle
+                        if(isset($xmlresEuro->serviceResponse->carCategoryList)){
+                            foreach ($xmlresEuro->serviceResponse->carCategoryList->carCategory as $vehicle) {
+                                if (in_array((string)$vehicle['carCategoryCode'], $codes)) {
+                                    // Display the rate for the first matching vehicle
+                                    $rate = (float)$vehicle['carCategoryPowerHP']; // Replace with actual rate data if different
+                                    echo 'AUD ' . $rate;
+                                    $found = true;
+                                    break; // Only display the first matching vehicle
+                                }
                             }
-                        }
-
-                        if (!$found) {
+                        }else{
                             echo 'Not Available';
                         }
-
                         echo '</td>';
+                        
+                        
                     }
                     ?>
                 </tr>
@@ -607,69 +606,97 @@ session_start();
         </table>
     </div>
     <!-- price table mobile-->
-    <div id="price_table_mobile" class="container d-md-none">
-        <table class="table table-bordered my-4">
-            <thead>
-                <tr>
-                    <th></th>
-                    <th><img src="./images/hertz.png" alt=""></th>
-                    <th><img src="./images/DOLLARRet.png" alt=""></th>
-                    <th><img src="./images/thrifty.png" alt=""></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($categories as $category => $sizes): ?>
+    <div id="price_table_mobile" class="container d-md-none" style="overflow-x: scroll;">
+        <div class="table-responsive-x">
+            <table class="table table-bordered my-4">
+                <thead>
                     <tr>
-                        <td scope="col" class="text-center align-middle">
-                            <div style="display: flex; flex-direction: column; align-items: center;">
-                                <img src="./images/<?php echo strtolower($category); ?>.jpg" alt="" style="max-width: 100px; height: auto;">
-                                <p style="text-align: center; width: 100%; word-wrap: break-word; margin-top: 5px;">
-                                    <?php echo ucfirst($category); ?>
-                                </p>
-                            </div>
-                        </td>
+                        <th></th>
+                        <th class="text-center"><img src="./images/hertz.png" alt="Hertz"></th>
+                        <th class="text-center"><img src="./images/DOLLARRet.png" alt="Dollar"></th>
+                        <th class="text-center"><img src="./images/thrifty.png" alt="Thrifty"></th>
+                        <th class="text-center"><img style="width: 9rem;" src="./images/EuroCar.svg" alt="Europcar"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($categories as $category => $sizes): ?>
+                        <tr>
+                            <!-- Category Column -->
+                            <td scope="col" class="text-center align-middle">
+                                <div style="display: flex; flex-direction: column; align-items: center;">
+                                    <img src="./images/<?php echo strtolower($category); ?>.jpg" alt="" style="max-width: 100px; height: auto;">
+                                    <p style="text-align: center; width: 100%; word-wrap: break-word; margin-top: 5px;">
+                                        <?php echo ucfirst($category); ?>
+                                    </p>
+                                </div>
+                            </td>
 
-                        <?php foreach (['hertz', 'dollar', 'thrifty'] as $company): ?>
+                            <!-- Loop for Hertz, Dollar, Thrifty -->
+                            <?php foreach (['hertz', 'dollar', 'thrifty'] as $company): ?>
+                                <td class="text-center mobile" data-size="<?php echo implode(',', $sizes); ?>">
+                                    <?php
+                                    // Determine the array based on the company
+                                    $vehicleDetails = null;
+                                    if ($company == 'hertz') {
+                                        $vehicleDetails = $vehicleDetailsZE;
+                                    } elseif ($company == 'dollar') {
+                                        $vehicleDetails = $vehicleDetailsZR;
+                                    } elseif ($company == 'thrifty') {
+                                        $vehicleDetails = $vehicleDetailsZT;
+                                    }
+
+                                    // Check for category availability in the selected company array
+                                    if (isset($vehicleDetails[$category])) {
+                                        $details = $vehicleDetails[$category];
+                                        $found = false;
+
+                                        // Loop through details to find matching size
+                                        foreach ($details as $detail) {
+                                            if (isset($detail['rate']) && in_array($detail['size'], $sizes)) {
+                                                $val = calculatePercentage($markUp, $detail['rate']);
+                                                echo 'AUD ' . number_format($val, 2);
+                                                $found = true;
+                                                break;
+                                            }
+                                        }
+
+                                    } else {
+                                        echo 'Not Available';
+                                    }
+                                    ?>
+                                </td>
+                            <?php endforeach; ?>
+
+                            <!-- Europcar Column -->
                             <td class="text-center mobile" data-size="<?php echo implode(',', $sizes); ?>">
                                 <?php
-                                // Determine which array to use based on the company
-                                $vehicleDetails = null;
-                                if ($company == 'hertz') {
-                                    $vehicleDetails = $vehicleDetailsZE;
-                                } elseif ($company == 'dollar') {
-                                    $vehicleDetails = $vehicleDetailsZR;
-                                } elseif ($company == 'thrifty') {
-                                    $vehicleDetails = $vehicleDetailsZT;
-                                }
-
-                                // Check if the category exists in the selected array
-                                if (isset($vehicleDetails[$category])):
-                                    $details = $vehicleDetails[$category];
-                                    // Check if the 'rate' key exists and match with size
-                                    foreach ($details as $detail) {
-                                        if (isset($detail['rate']) && in_array($detail['size'], $sizes)) {
-                                            $val = calculatePercentage($markUp,$detail['rate']);
-                                            echo 'AUD ' . number_format($val, 2);
-                                            break;
+                                $found = false;
+                                if(is_array($xmlresEuro->serviceResponse->carCategoryList->carCategory)){
+                                    // Loop through vehicle categories for Europcar and match with given codes
+                                    foreach ($xmlresEuro->serviceResponse->carCategoryList->carCategory as $vehicle) {
+                                        if (in_array((string)$vehicle['carCategoryCode'], $sizes)) {
+                                            // Display the rate for the first matching vehicle
+                                            $rate = (float)$vehicle['carCategoryPowerHP']; // Replace with actual rate field
+                                            echo 'AUD ' . number_format($rate, 2);
+                                            $found = true;
+                                            break; // Only display the first matching vehicle
                                         }
                                     }
+                                }else{
+                                    echo 'Not Available';
+                                }
+                                
                                 ?>
-                                    <br>
-                                    <?php
-                                    // Check if the 'size' key exists before displaying it
-                                    if (isset($detail['size'])): ?>
-                                        <input type="text" value="<?php echo $detail['size']; ?>" hidden>
-                                    <?php endif; ?>
-                                <?php else: ?>
-                                    Not Available
-                                <?php endif; ?>
                             </td>
-                        <?php endforeach; ?>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
+
+
+
 
     <!-- result line desktop-->
     <div class="d-none d-md-block">
