@@ -424,7 +424,7 @@ if(isset($response)){
                 $mail->AltBody = '';
     
                 if ($mail->send()) {
-                    echo "<script>window.location.href='sucess.php?cnfNo=$confID&lName=$surname&rate=$final'</script>";
+                    echo "<script>window.location.href='sucess.php?cnfNo=$confID&lName=$surname&rate=$final&vdNo=$vdNo'</script>";
                 }
                 // echo 'Message has been sent';
             } catch (Exception $e) {

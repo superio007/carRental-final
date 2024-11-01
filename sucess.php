@@ -36,6 +36,9 @@
     if(isset($_GET['rate'])){
         $rate = $_GET['rate'];
     }
+    if(isset($_GET['vdNo'])){
+        $vdNo = $_GET['vdNo'];
+    }
     if(isset($_GET['cnfNo'])){
         $cnfNo = $_GET['cnfNo'];
     }
@@ -52,7 +55,7 @@
     $mpsMode="NIL";
     $payMethod="ALL";
     $lang="E";
-    $sucess = "https://dev.yourbestwayhome.com.au/Hertz-main/detail.php?cnfNo=$cnfNo&lName=$lName";
+    $sucess = "https://dev.yourbestwayhome.com.au/Hertz-main/detail.php?cnfNo=$cnfNo&lName=$lName&vdNo=$vdNo";
     $successUrl=$sucess;
     $failUrl="http://www.yourdomain.com/fail.html";
     $cancelUrl="https://dev.yourbestwayhome.com.au/Hertz-main/index.php";
