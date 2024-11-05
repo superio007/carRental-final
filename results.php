@@ -610,86 +610,97 @@ session_start();
         <div class="table-responsive-x">
             <table class="table table-bordered my-4">
                 <thead>
-                    <tr>
-                        <th></th>
-                        <th class="text-center"><img src="./images/hertz.png" alt="Hertz"></th>
-                        <th class="text-center"><img src="./images/DOLLARRet.png" alt="Dollar"></th>
-                        <th class="text-center"><img src="./images/thrifty.png" alt="Thrifty"></th>
-                        <th class="text-center"><img style="width: 9rem;" src="./images/EuroCar.svg" alt="Europcar"></th>
-                    </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($categories as $category => $sizes): ?>
-                        <tr>
-                            <!-- Category Column -->
-                            <td scope="col" class="text-center align-middle">
-                                <div style="display: flex; flex-direction: column; align-items: center;">
-                                    <img src="./images/<?php echo strtolower($category); ?>.jpg" alt="" style="max-width: 100px; height: auto;">
-                                    <p style="text-align: center; width: 100%; word-wrap: break-word; margin-top: 5px;">
-                                        <?php echo ucfirst($category); ?>
-                                    </p>
-                                </div>
-                            </td>
-
-                            <!-- Loop for Hertz, Dollar, Thrifty -->
-                            <?php foreach (['hertz', 'dollar', 'thrifty'] as $company): ?>
-                                <td class="text-center mobile" data-size="<?php echo implode(',', $sizes); ?>">
-                                    <?php
-                                    // Determine the array based on the company
-                                    $vehicleDetails = null;
-                                    if ($company == 'hertz') {
-                                        $vehicleDetails = $vehicleDetailsZE;
-                                    } elseif ($company == 'dollar') {
-                                        $vehicleDetails = $vehicleDetailsZR;
-                                    } elseif ($company == 'thrifty') {
-                                        $vehicleDetails = $vehicleDetailsZT;
+                    <!-- Eurocar Row -->
+                    <tr id="Euro">
+                        <th class="" id="Euro_image">
+                            <img src="./images/EuroCar.svg" alt="">
+                        </th>
+                        <?php
+                        foreach ($categoriesEuro as $category => $codes) {
+                            $found = false;
+                            $dataSize = implode(',', $codes);
+                            echo '<td class="text-center mobile" data-size="' . $dataSize . '">';
+                            if(isset($xmlresEuro->serviceResponse->carCategoryList)){
+                                foreach ($xmlresEuro->serviceResponse->carCategoryList->carCategory as $vehicle) {
+                                    if (in_array((string)$vehicle['carCategoryCode'], $codes)) {
+                                        $rate = (float)$vehicle['carCategoryPowerHP'];
+                                        echo 'AUD ' . $rate;
+                                        $found = true;
+                                        break;
                                     }
-
-                                    // Check for category availability in the selected company array
-                                    if (isset($vehicleDetails[$category])) {
-                                        $details = $vehicleDetails[$category];
-                                        $found = false;
-
-                                        // Loop through details to find matching size
-                                        foreach ($details as $detail) {
-                                            if (isset($detail['rate']) && in_array($detail['size'], $sizes)) {
-                                                $val = calculatePercentage($markUp, $detail['rate']);
-                                                echo 'AUD ' . number_format($val, 2);
-                                                $found = true;
-                                                break;
-                                            }
-                                        }
-
-                                    } else {
-                                        echo 'Not Available';
-                                    }
-                                    ?>
-                                </td>
-                            <?php endforeach; ?>
-
-                            <!-- Europcar Column -->
-                            <td class="text-center mobile" data-size="<?php echo implode(',', $sizes); ?>">
-                                <?php
-                                $found = false;
-                                if(is_array($xmlresEuro->serviceResponse->carCategoryList->carCategory)){
-                                    // Loop through vehicle categories for Europcar and match with given codes
-                                    foreach ($xmlresEuro->serviceResponse->carCategoryList->carCategory as $vehicle) {
-                                        if (in_array((string)$vehicle['carCategoryCode'], $sizes)) {
-                                            // Display the rate for the first matching vehicle
-                                            $rate = (float)$vehicle['carCategoryPowerHP']; // Replace with actual rate field
-                                            echo 'AUD ' . number_format($rate, 2);
-                                            $found = true;
-                                            break; // Only display the first matching vehicle
-                                        }
-                                    }
-                                }else{
-                                    echo 'Not Available';
                                 }
-                                
-                                ?>
+                            }
+                            if (!$found) {
+                                echo 'Not Available';
+                            }
+                            echo '</td>';
+                        }
+                        ?>
+                    </tr>
+                    <!-- Hertz Row -->
+                    <tr id="hertz">
+                        <th id="hertz_image"><img src="./images/hertz.png" alt=""></th>
+                        <?php foreach ($categories as $category => $sizes): ?>
+                            <td class="text-center mobile" data-size="<?php echo implode(',', $sizes); ?>">
+                                <?php if (isset($vehicleDetailsZE[$category])): ?>
+                                    <?php foreach ($vehicleDetailsZE[$category] as $details): ?>
+                                        <?php
+                                        echo 'AUD ' . number_format(calculatePercentage($markUp,$details['rate']), 2);
+                                        ?>
+                                        <br>
+                                        <?php break; ?>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    Not Available
+                                <?php endif; ?>
                             </td>
-                        </tr>
-                    <?php endforeach; ?>
+                        <?php endforeach; ?>
+                    </tr>
+                    <!-- Dollar Row -->
+                    <tr id="doller">
+                        <th id="doller_image"><img src="./images/DOLLARRet.png" alt=""></th>
+
+                        <?php foreach ($categories as $category => $sizes): ?>
+                            <td class="text-center mobile" data-size="<?php echo implode(',', $sizes); ?>">
+                                <?php if (isset($vehicleDetailsZR[$category])): ?>
+                                    <?php foreach ($vehicleDetailsZR[$category] as $details): ?>
+                                        <?php
+                                        // Output the rate and the code
+                                        echo 'AUD ' . number_format(calculatePercentage($markUp,$details['rate']), 2);
+                                        ?>
+                                        <br>
+                                        <!-- <input type="text" value="<?php echo $details['code']; ?>" hidden> -->
+                                        <?php break; // Break to only show the first vehicle of each category 
+                                        ?>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    Not Available
+                                <?php endif; ?>
+                            </td>
+                        <?php endforeach; ?>
+                    </tr>
+
+                    <!-- Thrifty Row -->
+                    <tr id="thrifty">
+                        <th id="thrifty_image"><img src="./images/thrifty.png" alt=""></th>
+                        <?php foreach ($categories as $category => $sizes): ?>
+                            <td class="text-center mobile" data-size="<?php echo implode(',', $sizes); ?>">
+                                <?php if (isset($vehicleDetailsZT[$category])): ?>
+                                    <?php foreach ($vehicleDetailsZT[$category] as $details): ?>
+                                        <?php
+                                        echo 'AUD ' . number_format(calculatePercentage($markUp,$details['rate']), 2);
+                                        ?>
+                                        <br>
+                                        <?php break; ?>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    Not Available
+                                <?php endif; ?>
+                            </td>
+                        <?php endforeach; ?>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -1348,7 +1359,7 @@ session_start();
 
                         // Output the HTML for each vehicle, hide them initially
                         echo '
-                        <div class="res_card vehicle-item-mobile" data-size="' . $dataSize . '">
+                        <div class="res_card vehicle-item-mobile" data-size="' . $dataSize . '" style="display: none;">
                             <div>
                                 <div class="d-grid">
                                     <img style="width:20rem;" src="' . $image . '" alt="' . $name . '">
@@ -1461,6 +1472,52 @@ session_start();
     });
 
 
+    // document.querySelectorAll('td.mobile').forEach(function(td) {
+    //         td.addEventListener('click', function() {
+    //             var selectedSizes = td.getAttribute('data-size').split(','); // Get the list of sizes for the selected category
+    //             var vendorRow = 'Euro'; // Adjust based on the vendor
+                
+    //             // Hide all vehicle lists first
+    //             document.querySelectorAll('.vehicle-list-mobile').forEach(function(list) {
+    //                 list.style.display = 'none'; // Hide all lists
+    //             });
+
+    //             // Show the specific vendor's vehicle list
+    //             var vendorList = document.getElementById('vehicle-list-' + vendorRow + '-mobile');
+    //             vendorList.style.display = 'block';
+
+    //             // Hide all vehicles in this list first
+    //             vendorList.querySelectorAll('.vehicle-item-mobile').forEach(function(vehicle) {
+    //                 vehicle.style.display = 'none';
+    //             });
+
+    //             // Show the vehicles that match the selected sizes
+    //             var vehiclesShown = false;
+    //             var vehicleCount = 0; // Initialize the vehicle count
+
+    //             selectedSizes.forEach(function(size) {
+    //                 var matchingVehicles = vendorList.querySelectorAll('.vehicle-item-mobile[data-size="' + size + '"]');
+    //                 matchingVehicles.forEach(function(vehicle) {
+    //                     vehicle.style.display = 'block'; // Show matching vehicles
+    //                     vehiclesShown = true;
+    //                     vehicleCount++; // Increment the vehicle count
+    //                 });
+    //             });
+
+    //             // If no vehicles are shown, show an alert
+    //             if (!vehiclesShown) {
+    //                 alert('No matching vehicles found.');
+    //             }
+
+    //             // Update the results count dynamically
+    //             if (vehicleCount > 0) {
+    //                 document.getElementById('results-count-mobile').innerText = 'SHOWING ' + vehicleCount + ' RESULTS';
+    //                 document.getElementById('results-count-container-mobile').style.display = 'block'; // Show the results count section
+    //             } else {
+    //                 document.getElementById('results-count-container-mobile').style.display = 'none'; // Hide the results count if no vehicles are found
+    //             }
+    //         });
+    //     });
     document.querySelectorAll('td.mobile').forEach(function(td) {
         td.addEventListener('click', function() {
             var selectedSizes = td.getAttribute('data-size').split(','); // Get the list of sizes for the selected category
@@ -1529,6 +1586,7 @@ session_start();
             }
         });
     });
+
 </script>
 
 </html>
