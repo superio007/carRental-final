@@ -792,7 +792,8 @@ session_start();
                                             <p>Rates starting at ...</p>
                                         </div>
                                         <div>
-                                            <p>' . $currency . ' ' . $final . '</p>
+                                            <p>'."Net : " . $currency . ' ' . number_format($rate,2) . '</p>
+                                            <p>'."Markup : " . $currency . ' ' . number_format($final,2) . '</p>
                                         </div>
                                     </div>
                                     <div class="res_pay">
@@ -878,7 +879,8 @@ session_start();
                                             <p>Rates starting at ...</p>
                                         </div>
                                         <div>
-                                            <p>' . $currency . ' ' . $final . '</p>
+                                            <p>'."Net : " . $currency . ' ' . number_format($rate,2) . '</p>
+                                            <p>'."Markup : " . $currency . ' ' . number_format($final,2) . '</p>
                                         </div>
                                     </div>
                                     <div class="res_pay">
@@ -964,7 +966,8 @@ session_start();
                                             <p>Rates starting at ...</p>
                                         </div>
                                         <div>
-                                            <p>' . $currency . ' ' . $final . '</p>
+                                            <p>'."Net : " . $currency . ' ' . number_format($rate,2) . '</p>
+                                            <p>'."Markup : " . $currency . ' ' . number_format($final,2) . '</p>
                                         </div>
                                     </div>
                                     <div class="res_pay">
@@ -1050,7 +1053,8 @@ session_start();
                                             <p>Rates starting at ...</p>
                                         </div>
                                         <div>
-                                            <p>' . $currency . ' ' . $final . '</p>
+                                            <p>'."Net : " . $currency . ' ' . number_format($rate,2) . '</p>
+                                            <p>'."Markup : " . $currency . ' ' . number_format($final,2) . '</p>
                                         </div>
                                     </div>
                                     <div class="res_pay">
@@ -1138,7 +1142,8 @@ session_start();
                                             <p>Rates starting at ...</p>
                                         </div>
                                         <div>
-                                            <p>' . $currency . ' ' . $final . '</p>
+                                            <p>'."Net : " . $currency . ' ' . number_format($rate,2) . '</p>
+                                            <p>'."Markup : " . $currency . ' ' . number_format($final,2) . '</p>
                                         </div>
                                     </div>
                                     <div class="res_pay">
@@ -1225,7 +1230,8 @@ session_start();
                                             <p>Rates starting at ...</p>
                                         </div>
                                         <div>
-                                            <p>' . $currency . ' ' . $final . '</p>
+                                            <p>'."Net : " . $currency . ' ' . number_format($rate,2) . '</p>
+                                            <p>'."Markup : " . $currency . ' ' . number_format($final,2) . '</p>
                                         </div>
                                     </div>
                                     <div class="res_pay">
@@ -1313,7 +1319,8 @@ session_start();
                                             <p>Rates starting at ...</p>
                                         </div>
                                         <div>
-                                            <p>' . $currency . ' ' . $final . '</p>
+                                            <p>'."Net : " . $currency . ' ' . number_format($rate,2) . '</p>
+                                            <p>'."Markup : " . $currency . ' ' . number_format($final,2) . '</p>
                                         </div>
                                     </div>
                                     <div class="res_pay">
@@ -1402,7 +1409,8 @@ session_start();
                                             <p>Rates starting at ...</p>
                                         </div>
                                         <div>
-                                            <p>' . $currency . ' ' . $final . '</p>
+                                            <p>'."Net : " . $currency . ' ' . number_format($rate,2) . '</p>
+                                            <p>'."Markup : " . $currency . ' ' . number_format($final,2) . '</p>
                                         </div>
                                     </div>
                                     <div class="res_pay">
