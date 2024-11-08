@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<message>
+    <serviceResponse returnCode="OK">
+        <reservation carCategory="EDMR" carCategoryAirCond="Y" carCategoryAutomatic="N" carCategoryBaggageQuantity="2" carCategoryCO2Quantity="118" carCategoryDoors="5" carCategoryModelHeight="1.43" carCategoryModelLength="4.06" carCategoryModelWidth="1.77" carCategoryName="ECONOMY 4 DOORS,MANUAL,A/C" carCategoryPowerHP="75" carCategoryPowerKW="55" carCategorySample="OPEL CORSA" carCategorySeats="5" carCategoryType="Eco-responsable" countryOfReservation="ES" duration="1" fuelTypeCode="UL" productCode="CRPLMBES" productFamily="SPDR" productLevel="22083" productVersion="9" rateId="f719e186e5fc073fc89258c8d7cbe8e89699aea56d8b040cf7ec4f8fcb052d39" resTimeStamp="202411080106" reservationDate="20241108" reservationTime="0106" statusCode="S" type="P" xrsPartnerCallerID="Global Travel Xper">
+            <links>
+                <link id="carvisual" value="https://static.europcar.com/carvisuals/partners/835x557/EDMR_ES.png" />
+            </links>
+            <checkin date="20241110" stationID="MADT01" time="1000" />
+            <checkout date="20241109" stationID="MADT01" time="1000" />
+            <quote IncludedKmUnit="K" areTaxesIncluded="Y" basePrice="94.56" baseType="D" bookingCurrencyOfTotalRateEstimate="AUD" currency="EUR" exchangeRate="1.684256" extraKmPrice="0.15" includedKm="350" includedKmType="D" isAuthorizedForPublicUse="Y" isPrepaid="N" isPriceSecret="N" rentingCurrencyOfTotalRateEstimate="EUR" totalIncludedDist="350" totalRateEstimate="95.17" totalRateEstimateInBookingCurrency="160.29" totalRateEstimateInRentingCurrency="95.17" xrsBasePrice="83.61" xrsBasePriceInBookingCurrency="140.82">
+                <insuranceList>
+                    <insurance bkExcessWithPOM="0.00" code="WWI" descr="glass &amp; tyres protection" excessWithPOM="0.00" price="7.00" priceInBookingCurrency="11.79" rentalPriceAI="9.57" rentalPriceInBookingCurrencyAI="16.12" type="O" />
+                    <insurance bkExcessWithPOM="0.00" code="UPPREM" excessWithPOM="0.00" price="51.00" priceInBookingCurrency="85.90" rentalPriceAI="69.73" rentalPriceInBookingCurrencyAI="117.44" type="O" />
+                    <insurance bkExcessWithPOM="0.00" code="SPTHW" descr="full theft protection" excessWithPOM="0.00" price="10.60" priceInBookingCurrency="17.85" rentalPriceAI="14.50" rentalPriceInBookingCurrencyAI="24.42" type="O" />
+                    <insurance bkExcessWithPOM="0.00" code="SPCDW" descr="Full Accident &amp; Damage Protection" excessWithPOM="0.00" price="20.04" priceInBookingCurrency="33.75" rentalPriceAI="27.41" rentalPriceInBookingCurrencyAI="46.17" type="O" />
+                    <insurance bkExcessWithPOM="0.00" code="SPAI" descr="personal accident cover plus (spai)" excessWithPOM="0.00" price="4.95" priceInBookingCurrency="8.34" rentalPriceAI="6.76" rentalPriceInBookingCurrencyAI="11.39" type="O" />
+                    <insurance bkExcessWithPOM="0.00" code="PROPLUS" descr="Protection Plus" excessWithPOM="0.00" price="26.26" priceInBookingCurrency="44.23" rentalPriceAI="35.90" rentalPriceInBookingCurrencyAI="60.46" type="O" />
+                    <insurance bkExcessWithPOM="0.00" code="PREMIUM" descr="Premium Protection package more 26 Years old" excessWithPOM="0.00" price="34.55" priceInBookingCurrency="58.19" rentalPriceAI="47.24" rentalPriceInBookingCurrencyAI="79.56" type="O" />
+                    <insurance bkExcessWithPOM="0.00" code="PAI" descr="personal accident cover (pai)" excessWithPOM="0.00" price="4.13" priceInBookingCurrency="6.96" rentalPriceAI="5.65" rentalPriceInBookingCurrencyAI="9.52" type="O" />
+                    <insurance bkExcessWithPOM="505.28" code="MEDIUM" descr="Medium Protection Package" excessWithPOM="300.00" price="24.19" priceInBookingCurrency="40.74" rentalPriceAI="33.07" rentalPriceInBookingCurrencyAI="55.70" type="O" />
+                    <insurance bkExcessWithPOM="0.00" code="FAW" descr="Fines Appeal Waiver" excessWithPOM="0.00" price="3.49" priceInBookingCurrency="5.88" rentalPriceAI="4.77" rentalPriceInBookingCurrencyAI="8.03" type="O" />
+                    <insurance bkExcessWithPOM="0.00" code="PREMPRE" descr="Protection Plus" excessWithPOM="0.00" price="27.64" priceInBookingCurrency="46.55" rentalPriceAI="37.79" rentalPriceInBookingCurrencyAI="63.65" type="O" />
+                    <insurance bkExcessWithPOM="0.00" code="ECOLOGIC" descr="Environmental contribution" excessWithPOM="0.00" price="0.50" priceInBookingCurrency="0.84" rentalPriceAI="0.69" rentalPriceInBookingCurrencyAI="1.16" type="M" />
+                    <insurance bkExcessWithPOM="2021.11" code="CDW" descr="collision damage waiver (cdw)" excessWithPOM="1200.00" price="0.00" priceInBookingCurrency="0.00" rentalPriceAI="0.00" rentalPriceInBookingCurrencyAI="0.00" type="I" />
+                    <insurance bkExcessWithPOM="2021.11" code="THW" descr="theft waiver (thw)" excessWithPOM="1200.00" price="0.00" priceInBookingCurrency="0.00" rentalPriceAI="0.00" rentalPriceInBookingCurrencyAI="0.00" type="I" />
+                </insuranceList>
+                <includeList>
+                    <include code="5101" descr="Airport Surcharge" />
+                </includeList>
+                <taxList>
+                    <tax taxCode="STD" taxRate="21.00" />
+                </taxList>
+            </quote>
+            <ageLimit minAgeForCategory="21" minAgeForCountry="21" minLicencePeriod="12 months" youngDriverAge="25" />
+        </reservation>
+        <driver addressCountry="AU" countryOfResidence="AU" />
+    </serviceResponse>
+</message>

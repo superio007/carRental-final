@@ -1,5 +1,8 @@
 <?php
 session_start();
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -34,7 +37,7 @@ session_start();
         echo "No XML response available in session.";
     }
     $dataArray = $_SESSION['dataarray'];
-    // var_dump($dataArray);
+    var_dump($dataArray);
     require "dbconn.php";
     $pickUp = $dataArray['pickLocation'] ?? '';
     $drop = $dataArray['dropLocation'] ?? '';
@@ -55,7 +58,73 @@ session_start();
         }
     }
     // $conn->close();
+    function formatDateAndTime($dateTimeString) {
+        // Convert the date-time string to a DateTime object
+        $dateTime = new DateTime($dateTimeString);
+        
+        // Format the date as YYYYMMDD
+        $formattedDate = $dateTime->format('Ymd');
+        
+        // Format the time as HHMM (24-hour format)
+        $formattedTime = $dateTime->format('Hi');
+        
+        // Return both values as an array
+        return [$formattedDate, $formattedTime];
+    }
+    $infoArray = [
+        'pickupEuro' => $dataArray['pickLocation'],
+        'dropOffEuro' => $dataArray['dropLocation'],
+        'pickUpDateEuro' => formatDateAndTime($dataArray['pickUpDateTime'])[0],
+        'pickUpTimeEuro' => formatDateAndTime($dataArray['pickUpDateTime'])[1],
+        'dropOffDateEuro' => formatDateAndTime($dataArray['dropOffDateTime'])[0],    
+        'dropOffTimeEuro' => formatDateAndTime($dataArray['dropOffDateTime'])[1],
+    ];
+    function getQuote($carCategory , $infoArray){
+        // Build XML request
+        $xmlRequestEuro = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+        <message>
+            <serviceRequest serviceCode=\"getQuote\">
+                <serviceParameters>
+                    <reservation carCategory=\"$carCategory\" rateId=\"RATE_ID\">
+                        <checkout stationID=\"$infoArray[pickupEuro]\" date=\"$infoArray[pickUpDateEuro]\" time=\"$infoArray[pickUpTimeEuro]\"/>
+                        <checkin stationID=\"$infoArray[dropOffEuro]\" date=\"$infoArray[dropOffDateEuro]\" time=\"$infoArray[dropOffTimeEuro]\"/>
+                    </reservation>
+                    <driver countryOfResidence=\"AU\"/>
+                </serviceParameters>
+            </serviceRequest>
+        </message>";
 
+        // Initialize cURL
+        $ch = curl_init();
+
+        // Set cURL options
+        curl_setopt($ch, CURLOPT_URL, 'https://applications-ptn.europcar.com/xrs/resxml');
+        curl_setopt($ch, CURLOPT_POST, 1);
+
+        // URL-encode the parameters (XML Request, callerCode, and password)
+        $postFields = http_build_query([
+        'XML-Request' => $xmlRequestEuro,
+        'callerCode' => '1132097', // Replace with your actual caller code
+        'password' => '02092024', // Replace with your actual password
+        ]);
+
+        // Set the POST fields and headers
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/x-www-form-urlencoded',
+        'Accept: text/xml'
+        ]);
+
+        // Execute the cURL request
+        $response = curl_exec($ch);
+
+        // Close cURL session
+        curl_close($ch);
+
+        // Return or process the response
+        return $response;
+    }
     // Date formatting function
     function formatDate($dateString)
     {
@@ -331,9 +400,9 @@ session_start();
         </div>
     </div>
     <div class="row" style="background: url('./images/res_back.jpg');background-repeat: no-repeat;
-    background-attachment: local;
-    background-size: 100% 100%;
-    height: 14rem;">
+        background-attachment: local;
+        background-size: 100% 100%;
+        height: 14rem;">
         <div class="container align-content-center">
             <h1 class="text-white text-center">
                 Explore, Discover & Save, 24,000 <br>
@@ -601,7 +670,6 @@ session_start();
                         </td>
                     <?php endforeach; ?>
                 </tr>
-
             </tbody>
         </table>
     </div>
@@ -705,10 +773,6 @@ session_start();
             </table>
         </div>
     </div>
-
-
-
-
     <!-- result line desktop-->
     <div class="d-none d-md-block">
         <div style="background-color: #ced1d4; height: auto; display: none;" class="p-3" id="results-count-container">
@@ -1263,23 +1327,34 @@ session_start();
                         $passengers = (string) $vehicle['carCategorySeats']; // Number of seats
                         $luggage = (string) $vehicle['carCategoryBaggageQuantity']; // Baggage capacity
                         $transmission = (string) $vehicle['carCategoryAutomatic'] === 'Y' ? 'Automatic' : 'Manual'; // Transmission type
-                        $rate = (float) $vehicle['carCategoryPowerHP']; // Use Power HP as a placeholder for rate
+                        // $rate = (float) $vehicle['carCategoryPowerHP']; // Use Power HP as a placeholder for rate
+                        $xmldata = getQuote($vehicle['carCategoryCode'], $infoArray);
+                        $xml = simplexml_load_string($xmldata);
+                        $rate = (float) $xml->serviceResponse->reservation->quote['basePrice'];
+                        $carVisualLink = (string)$xml->serviceResponse->reservation->links->link['value'];
                         $final = calculatePercentage($markUp, $rate); // Calculate markup
-                        $currency = "USD"; // Placeholder for currency
-                        $vendor = "Hertz"; // Example vendor
-                        $image = "https://images.hertz.com/vehicles/220x128/default.jpg"; // Placeholder image
+                        $currency = (string)$xml->serviceResponse->reservation->quote['currency'];// Placeholder for currency
+                        $vendor = "Euro"; // Example vendor
                         $vendorLogo = "./images/EuroCar.svg"; // Placeholder for vendor logo
                         $reference = (string) $vehicle['carCategoryCode']; // Car category code as reference
 
                         // Use the carCategoryCode (e.g., CDAR, CFAR, etc.) as the data-size value
                         $dataSize = (string) $vehicle['carCategoryCode']; 
 
+                        if (is_numeric($final)) {
+                            $finalTotal = number_format((float)$final, 2);
+                        }
+                        else
+                        {
+                            $finalTotal = (float)$final;
+                        }
+
                         // Output the vehicle HTML with the correct data-size
                         echo '
-                        <div class="res_card res_hertz vehicle-item" data-size="' . $dataSize . '">
+                        <div class="res_card res_Euro vehicle-item" data-size="' . $dataSize . '">
                             <div class="row">
                                 <div class="col-4 d-grid">
-                                    <img style="width:20rem;" src="' . $image . '" alt="' . $name . '">
+                                    <img style="width:20rem;" src="' . $carVisualLink . '" alt="' . $name . '">
                                     <img src="' . $vendorLogo . '" alt="' . $vendor . '">
                                 </div>
                                 <div class="col-4">
@@ -1320,7 +1395,7 @@ session_start();
                                         </div>
                                         <div>
                                             <p>'."Net : " . $currency . ' ' . number_format($rate,2) . '</p>
-                                            <p>'."Markup : " . $currency . ' ' . number_format($final,2) . '</p>
+                                            <p>'."Markup : " . $currency . ' ' . $finalTotal . '</p>
                                         </div>
                                     </div>
                                     <div class="res_pay">
@@ -1353,23 +1428,34 @@ session_start();
                         $passengers = (string) $vehicle['carCategorySeats']; // Number of seats
                         $luggage = (string) $vehicle['carCategoryBaggageQuantity']; // Baggage capacity
                         $transmission = (string) $vehicle['carCategoryAutomatic'] === 'Y' ? 'Automatic' : 'Manual'; // Transmission type
-                        $rate = (float) $vehicle['carCategoryPowerHP']; // Use Power HP as a placeholder for rate
+                        $xmldata = getQuote($vehicle['carCategoryCode'], $infoArray);
+                        $xml = simplexml_load_string($xmldata);
+                        $rate = (float) $xml->serviceResponse->reservation->quote['basePrice'];
+                        $carVisualLink = (string)$xml->serviceResponse->reservation->links->link['value'];
                         $final = calculatePercentage($markUp, $rate); // Calculate markup
-                        $currency = "USD"; // Placeholder for currency
-                        $vendor = "Hertz"; // Example vendor
-                        $image = "https://images.hertz.com/vehicles/220x128/default.jpg"; // Placeholder image
+                        $currency = (string)$xml->serviceResponse->reservation->quote['currency'];; // Placeholder for currency
+                        $vendor = "Euro"; // Example vendor // Placeholder image
                         $vendorLogo = "./images/EuroCar.svg"; // Placeholder for vendor logo
                         $reference = (string) $vehicle['carCategoryCode']; // Car category code as reference
 
+                        
                         // Use the carCategoryCode (e.g., CDAR, CFAR, etc.) as the data-size value
                         $dataSize = (string) $vehicle['carCategoryCode']; 
+
+                        if (is_numeric($final)) {
+                            $finalTotal = number_format((float)$final, 2);
+                        }
+                        else
+                        {
+                            $finalTotal = (float)$final;
+                        }
 
                         // Output the HTML for each vehicle, hide them initially
                         echo '
                         <div class="res_card vehicle-item-mobile" data-size="' . $dataSize . '" style="display: none;">
                             <div>
                                 <div class="d-grid">
-                                    <img style="width:20rem;" src="' . $image . '" alt="' . $name . '">
+                                    <img style="width:20rem;" src="' . $carVisualLink . '" alt="' . $name . '">
                                     <img src="' . $vendorLogo . '" alt="' . $vendor . '">
                                 </div>
                                 <div>
@@ -1410,7 +1496,7 @@ session_start();
                                         </div>
                                         <div>
                                             <p>'."Net : " . $currency . ' ' . number_format($rate,2) . '</p>
-                                            <p>'."Markup : " . $currency . ' ' . number_format($final,2) . '</p>
+                                            <p>'."Markup : " . $currency . ' ' . $finalTotal . '</p>
                                         </div>
                                     </div>
                                     <div class="res_pay">
@@ -1478,119 +1564,49 @@ session_start();
             }
         });
     });
-
-
-    // document.querySelectorAll('td.mobile').forEach(function(td) {
-    //         td.addEventListener('click', function() {
-    //             var selectedSizes = td.getAttribute('data-size').split(','); // Get the list of sizes for the selected category
-    //             var vendorRow = 'Euro'; // Adjust based on the vendor
-                
-    //             // Hide all vehicle lists first
-    //             document.querySelectorAll('.vehicle-list-mobile').forEach(function(list) {
-    //                 list.style.display = 'none'; // Hide all lists
-    //             });
-
-    //             // Show the specific vendor's vehicle list
-    //             var vendorList = document.getElementById('vehicle-list-' + vendorRow + '-mobile');
-    //             vendorList.style.display = 'block';
-
-    //             // Hide all vehicles in this list first
-    //             vendorList.querySelectorAll('.vehicle-item-mobile').forEach(function(vehicle) {
-    //                 vehicle.style.display = 'none';
-    //             });
-
-    //             // Show the vehicles that match the selected sizes
-    //             var vehiclesShown = false;
-    //             var vehicleCount = 0; // Initialize the vehicle count
-
-    //             selectedSizes.forEach(function(size) {
-    //                 var matchingVehicles = vendorList.querySelectorAll('.vehicle-item-mobile[data-size="' + size + '"]');
-    //                 matchingVehicles.forEach(function(vehicle) {
-    //                     vehicle.style.display = 'block'; // Show matching vehicles
-    //                     vehiclesShown = true;
-    //                     vehicleCount++; // Increment the vehicle count
-    //                 });
-    //             });
-
-    //             // If no vehicles are shown, show an alert
-    //             if (!vehiclesShown) {
-    //                 alert('No matching vehicles found.');
-    //             }
-
-    //             // Update the results count dynamically
-    //             if (vehicleCount > 0) {
-    //                 document.getElementById('results-count-mobile').innerText = 'SHOWING ' + vehicleCount + ' RESULTS';
-    //                 document.getElementById('results-count-container-mobile').style.display = 'block'; // Show the results count section
-    //             } else {
-    //                 document.getElementById('results-count-container-mobile').style.display = 'none'; // Hide the results count if no vehicles are found
-    //             }
-    //         });
-    //     });
     document.querySelectorAll('td.mobile').forEach(function(td) {
         td.addEventListener('click', function() {
             var selectedSizes = td.getAttribute('data-size').split(','); // Get the list of sizes for the selected category
-
-            // Convert the NodeList to an array and then find the index of the clicked td
-            var allTds = Array.prototype.slice.call(td.closest('tr').querySelectorAll('td.mobile'));
-            var companyIndex = allTds.indexOf(td); // Find the index of the clicked td within the row
-
-            // Define the list of companies in the same order as in the HTML
-            var companies = ['hertz', 'dollar', 'thrifty'];
-
-            // Get the company based on the index
-            var vendorRow = companies[companyIndex];
-
-            console.log('vendorRow:', vendorRow); // Debugging line
-
-            if (!vendorRow) {
-                console.error('Could not find a valid vendor row ID.');
-                return; // Exit if vendorRow is not valid
-            }
+            var vendorRow = td.closest('tr').id; // Get the id of the closest row to identify the vendor (e.g., hertz, dollar, thrifty)
 
             // Hide all vehicle lists first
             document.querySelectorAll('.vehicle-list-mobile').forEach(function(list) {
                 list.style.display = 'none'; // Hide all lists
             });
 
-            // Construct the ID for the specific vendor's vehicle list
-            var vendorList = document.getElementById('vehicle-list-' + vendorRow + '-mobile');
+            // Show the specific vendor's vehicle list
+            var vendorList = document.getElementById('vehicle-list-' + vendorRow  + '-mobile');
+            vendorList.style.display = 'block';
 
-            // Check if the vendorList exists
-            if (vendorList) {
-                vendorList.style.display = 'block';
+            // Hide all vehicles in this list first
+            vendorList.querySelectorAll('.vehicle-item-mobile').forEach(function(vehicle) {
+                vehicle.style.display = 'none';
+            });
 
-                // Hide all vehicles in this list first
-                vendorList.querySelectorAll('.vehicle-item-mobile').forEach(function(vehicle) {
-                    vehicle.style.display = 'none';
+            // Show the vehicles that match the selected sizes
+            var vehiclesShown = false; // Track whether we display any vehicles
+            var vehicleCount = 0; // Track how many vehicles are displayed
+
+            selectedSizes.forEach(function(size) {
+                var matchingVehicles = vendorList.querySelectorAll('.vehicle-item-mobile[data-size="' + size + '"]');
+                matchingVehicles.forEach(function(vehicle) {
+                    vehicle.style.display = 'block';
+                    vehiclesShown = true;
+                    vehicleCount++; // Increment the count for each shown vehicle
                 });
+            });
 
-                // Show the vehicles that match the selected sizes
-                var vehiclesShown = false; // Track whether we display any vehicles
-                var vehicleCount = 0; // Track how many vehicles are displayed
+            // If no vehicles are shown, handle the empty case
+            if (!vehiclesShown) {
+                alert('No matching vehicles found.');
+            }
 
-                selectedSizes.forEach(function(size) {
-                    var matchingVehicles = vendorList.querySelectorAll('.vehicle-item-mobile[data-size="' + size + '"]');
-                    matchingVehicles.forEach(function(vehicle) {
-                        vehicle.style.display = 'block';
-                        vehiclesShown = true;
-                        vehicleCount++; // Increment the count for each shown vehicle
-                    });
-                });
-
-                // If no vehicles are shown, handle the empty case
-                if (!vehiclesShown) {
-                    alert('No matching vehicles found.');
-                }
-
-                // Update the results count dynamically
-                if (vehicleCount > 0) {
-                    document.getElementById('results-count-mobile').innerText = 'SHOWING ' + vehicleCount + ' RESULTS';
-                    document.getElementById('results-count-container-mobile').style.display = 'block'; // Show the results count section
-                } else {
-                    document.getElementById('results-count-container-mobile').style.display = 'none'; // Hide the results count if no vehicles are found
-                }
+            // Update the results count dynamically
+            if (vehicleCount > 0) {
+                document.getElementById('results-count-mobile').innerText = 'SHOWING ' + vehicleCount + ' RESULTS';
+                document.getElementById('results-count-container-mobile').style.display = 'block'; // Show the results count section
             } else {
-                console.error('Vehicle list with ID "vehicle-list-' + vendorRow + '-mobile" not found.');
+                document.getElementById('results-count-container-mobile').style.display = 'none'; // Hide the results count if no vehicles are found
             }
         });
     });
