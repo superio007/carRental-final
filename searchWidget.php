@@ -25,7 +25,7 @@ error_reporting(E_ALL);
 <body>
 <?php
     require 'dbconn.php';
-    $sql = "SELECT * FROM combined_rental_location";
+    $sql = "SELECT * FROM filter_locations";
     // $sql = "SELECT * FROM airport_list";
     $result = $conn->query($sql);
     function makeApiCall($vendorID, $pickup, $dropOff, $pickUpDateTime, $dropOffDateTime) {
@@ -302,7 +302,7 @@ error_reporting(E_ALL);
     // Function to handle the autocomplete logic
     $(document).ready(function() {
         // Event listener for input on pick-up location input field
-        $('#pickInput').on('input', function() {
+        $('#pickInput').on('input', function() { 
             var inputValue = $(this).val().trim();
 
             if (inputValue.length >= 3) {
@@ -312,7 +312,7 @@ error_reporting(E_ALL);
                     data: { searchTerm: inputValue },
                     success: function(response) {
                         var stations = JSON.parse(response); // Parse the JSON response
-
+                        
                         // Clear the suggestion box
                         $('#suggestionBox').empty().show();
 
