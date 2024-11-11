@@ -302,7 +302,7 @@ error_reporting(E_ALL);
     // Function to handle the autocomplete logic
     $(document).ready(function() {
         // Event listener for input on pick-up location input field
-        $('#pickInput').on('input', function() { 
+        $('#pickInput').on('input', function() {
             var inputValue = $(this).val().trim();
 
             if (inputValue.length >= 3) {
@@ -311,56 +311,73 @@ error_reporting(E_ALL);
                     method: 'POST',
                     data: { searchTerm: inputValue },
                     success: function(response) {
-                        var stations = JSON.parse(response); // Parse the JSON response
+                        var stations = JSON.parse(response);
                         
-                        // Clear the suggestion box
                         $('#suggestionBox').empty().show();
 
                         if (stations.message) {
-                            // Show "No data found" message
                             $('#suggestionBox').append(`
                                 <div class="no-data-message" style="padding: 10px; color: red;">
                                     ${stations.message}
                                 </div>
                             `);
                         } else {
-                            // Group stations by city
+                            // Group stations by city and filter to include only airport and an "All Locations" option
                             var groupedStations = stations.reduce(function(grouped, station) {
                                 var city = station.city;
                                 if (!grouped[city]) {
-                                    grouped[city] = [];
+                                    grouped[city] = { airport: null, allLocations: null };
                                 }
-                                grouped[city].push(station);
+
+                                // Only add entries if both "airport" and "allLocations" are not yet set
+                                if (!grouped[city].airport && station.stationName.toLowerCase().includes('airport')) {
+                                    grouped[city].airport = station;
+                                } else if (!grouped[city].allLocations) {
+                                    grouped[city].allLocations = { ...station, stationName: "All Locations" };
+                                }
+
+                                // If both entries are found, skip further additions for this city
+                                if (grouped[city].airport && grouped[city].allLocations) {
+                                    return grouped;
+                                }
+
                                 return grouped;
                             }, {});
 
-                            // Loop through the grouped stations and append them to the suggestion box
-                            Object.keys(groupedStations).forEach(function(city) {
-                                var cityStations = groupedStations[city];
-
+                            // Render only the airport and "All Locations" items
+                            for (const city in groupedStations) {
+                                const cityStations = groupedStations[city];
+                                // console.log(cityStations);
                                 $('#suggestionBox').append(`
                                     <div class="city-header" style="font-weight: bold; padding: 10px 5px; background-color: #f5f5f5;">
-                                        ${city} (${cityStations.length} Matches)
+                                        ${city} (2 Matches)
                                     </div>
                                 `);
 
-                                cityStations.forEach(function(station) {
-                                    
+                                if (cityStations.airport) {
                                     $('#suggestionBox').append(`
-                                        <div class="suggestion-item" data-citycode="${station.stationCode}" data-station="${station.stationCodeEuro}">
-                                            ${station.stationName}
+                                        <div class="suggestion-item" data-code="${cityStations.airport.stationCode}" data-station="${cityStations.airport.stationCodeEuro}">
+                                            <i class="fas fa-plane-departure"></i> ${cityStations.airport.stationName} (Airport)
                                         </div>
                                     `);
-                                    console.log(station);
-                                });
-                            });
-                            // Hide the suggestion box when a suggestion item is clicked
+                                }
+
+                                if (cityStations.allLocations) {
+                                    $('#suggestionBox').append(`
+                                        <div class="suggestion-item" data-code="${cityStations.allLocations.stationCode}" data-station="${cityStations.allLocations.stationCodeEuro}">
+                                            <i class="fas fa-map-marker-alt"></i>${city} ${cityStations.allLocations.stationName}
+                                        </div>
+                                    `);
+                                }
+                                // Break out of the loop after adding one city
+                                break;
+                            }
+
                             // Handle click on suggestion items
                             $('.suggestion-item').on('click', function() {
                                 var stationName = $(this).text().trim();
-                                var stationCode = $(this).data('citycode');
+                                var stationCode = $(this).data('code');
                                 var stationCodeEuro = $(this).data('station');
-                                console.log(stationCodeEuro);
 
                                 $('#pickInput').val(stationName);
                                 $('#pickCityCode').val(stationCode);
@@ -402,33 +419,56 @@ error_reporting(E_ALL);
                                 </div>
                             `);
                         } else {
+                            // Group stations by city and filter to include only airport and an "All Locations" option
                             var groupedStations = stations.reduce(function(grouped, station) {
                                 var city = station.city;
                                 if (!grouped[city]) {
-                                    grouped[city] = [];
+                                    grouped[city] = { airport: null, allLocations: null };
                                 }
-                                grouped[city].push(station);
+
+                                // Only add entries if both "airport" and "allLocations" are not yet set
+                                if (!grouped[city].airport && station.stationName.toLowerCase().includes('airport')) {
+                                    grouped[city].airport = station;
+                                } else if (!grouped[city].allLocations) {
+                                    grouped[city].allLocations = { ...station, stationName: "All Locations" };
+                                }
+
+                                // If both entries are found, skip further additions for this city
+                                if (grouped[city].airport && grouped[city].allLocations) {
+                                    return grouped;
+                                }
+
                                 return grouped;
                             }, {});
 
-                            Object.keys(groupedStations).forEach(function(city) {
-                                var cityStations = groupedStations[city];
+                            // Render only the airport and "All Locations" items
+                            for (const city in groupedStations) {
+                                const cityStations = groupedStations[city];
 
                                 $('#suggestionBox-mobile').append(`
                                     <div class="city-header" style="font-weight: bold; padding: 10px 5px; background-color: #f5f5f5;">
-                                        ${city} (${cityStations.length} Matches)
+                                        ${city} (2 Matches)
                                     </div>
                                 `);
 
-                                cityStations.forEach(function(station) {
+                                if (cityStations.airport) {
                                     $('#suggestionBox-mobile').append(`
-                                        <div class="suggestion-item-mobile" data-code="${station.stationCode}" data-station="${station.stationCodeEuro}">
-                                            ${station.stationName}
+                                        <div class="suggestion-item-mobile" data-code="${cityStations.airport.stationCode}" data-station="${cityStations.airport.stationCodeEuro}">
+                                            <i class="fas fa-plane-departure"></i> ${cityStations.airport.stationName} (Airport)
                                         </div>
                                     `);
-                                    console.log(station);
-                                });
-                            });
+                                }
+
+                                if (cityStations.allLocations) {
+                                    $('#suggestionBox-mobile').append(`
+                                        <div class="suggestion-item-mobile" data-code="${cityStations.allLocations.stationCode}" data-station="${cityStations.allLocations.stationCodeEuro}">
+                                            <i class="fas fa-map-marker-alt"></i> ${city} ${cityStations.allLocations.stationName}
+                                        </div>
+                                    `);
+                                }
+                                // Break out of the loop after adding one city
+                                break;
+                            }
 
                             // Handle click on mobile suggestion items
                             $('.suggestion-item-mobile').on('click', function() {
@@ -474,32 +514,56 @@ error_reporting(E_ALL);
                                 </div>
                             `);
                         } else {
+                            // Group stations by city and filter to include only airport and an "All Locations" option
                             var groupedStations = stations.reduce(function(grouped, station) {
                                 var city = station.city;
                                 if (!grouped[city]) {
-                                    grouped[city] = [];
+                                    grouped[city] = { airport: null, allLocations: null };
                                 }
-                                grouped[city].push(station);
+
+                                // Only add entries if both "airport" and "allLocations" are not yet set
+                                if (!grouped[city].airport && station.stationName.toLowerCase().includes('airport')) {
+                                    grouped[city].airport = station;
+                                } else if (!grouped[city].allLocations) {
+                                    grouped[city].allLocations = { ...station, stationName: "All Locations" };
+                                }
+
+                                // If both entries are found, skip further additions for this city
+                                if (grouped[city].airport && grouped[city].allLocations) {
+                                    return grouped;
+                                }
+
                                 return grouped;
                             }, {});
 
-                            Object.keys(groupedStations).forEach(function(city) {
-                                var cityStations = groupedStations[city];
+                            // Render only the airport and "All Locations" items
+                            for (const city in groupedStations) {
+                                const cityStations = groupedStations[city];
 
                                 $('#dropSuggestionBox').append(`
                                     <div class="city-header" style="font-weight: bold; padding: 10px 5px; background-color: #f5f5f5;">
-                                        ${city} (${cityStations.length} Matches)
+                                        ${city} (2 Matches)
                                     </div>
                                 `);
 
-                                cityStations.forEach(function(station) {
+                                if (cityStations.airport) {
                                     $('#dropSuggestionBox').append(`
-                                        <div class="suggestion-item" data-code="${station.stationCode}" data-station="${station.stationCodeEuro}>
-                                            ${station.stationName}
+                                        <div class="suggestion-item" data-code="${cityStations.airport.stationCode}" data-station="${cityStations.airport.stationCodeEuro}">
+                                            <i class="fas fa-plane-departure"></i> ${cityStations.airport.stationName} (Airport)
                                         </div>
                                     `);
-                                });
-                            });
+                                }
+
+                                if (cityStations.allLocations) {
+                                    $('#dropSuggestionBox').append(`
+                                        <div class="suggestion-item" data-code="${cityStations.allLocations.stationCode}" data-station="${cityStations.allLocations.stationCodeEuro}">
+                                            <i class="fas fa-map-marker-alt"></i>${city} ${cityStations.allLocations.stationName}
+                                        </div>
+                                    `);
+                                }
+                                // Break out of the loop after adding one city
+                                break;
+                            }
 
                             // Handle click on suggestion items
                             $('.suggestion-item').on('click', function() {
@@ -543,33 +607,58 @@ error_reporting(E_ALL);
                                 </div>
                             `);
                         } else {
+                            // Group stations by city and filter to include only airport and an "All Locations" option
                             var groupedStations = stations.reduce(function(grouped, station) {
                                 var city = station.city;
                                 if (!grouped[city]) {
-                                    grouped[city] = [];
+                                    grouped[city] = { airport: null, allLocations: null };
                                 }
-                                grouped[city].push(station);
+
+                                // Only add entries if both "airport" and "allLocations" are not yet set
+                                if (!grouped[city].airport && station.stationName.toLowerCase().includes('airport')) {
+                                    grouped[city].airport = station;
+                                } else if (!grouped[city].allLocations) {
+                                    grouped[city].allLocations = { ...station, stationName: "All Locations" };
+                                }
+
+                                // If both entries are found, skip further additions for this city
+                                if (grouped[city].airport && grouped[city].allLocations) {
+                                    return grouped;
+                                }
+
                                 return grouped;
                             }, {});
 
-                            Object.keys(groupedStations).forEach(function(city) {
-                                var cityStations = groupedStations[city];
+                            // Render only the airport and "All Locations" items
+                            for (const city in groupedStations) {
+                                const cityStations = groupedStations[city];
 
                                 $('#drop-suggestionBox-mobile').append(`
                                     <div class="city-header" style="font-weight: bold; padding: 10px 5px; background-color: #f5f5f5;">
-                                        ${city} (${cityStations.length} Matches)
+                                        ${city} (2 Matches)
                                     </div>
                                 `);
 
-                                cityStations.forEach(function(station) {
+                                if (cityStations.airport) {
                                     $('#drop-suggestionBox-mobile').append(`
-                                        <div class="drop-suggestion-item-mobile" data-code="${station.stationCode}" data-station="${station.stationCodeEuro}">
-                                            ${station.stationName}
+                                        <div class="drop-suggestion-item-mobile" data-code="${cityStations.airport.stationCode}" data-station="${cityStations.airport.stationCodeEuro}">
+                                            <i class="fas fa-plane-departure"></i> ${cityStations.airport.stationName} (Airport)
                                         </div>
                                     `);
-                                });
-                            });
+                                }
 
+                                if (cityStations.allLocations) {
+                                    $('#drop-suggestionBox-mobile').append(`
+                                        <div class="drop-suggestion-item-mobile" data-code="${cityStations.allLocations.stationCode}" data-station="${cityStations.allLocations.stationCodeEuro}">
+                                            <i class="fas fa-map-marker-alt"></i> ${city} ${cityStations.allLocations.stationName}
+                                        </div>
+                                    `);
+                                }
+                                // Break out of the loop after adding one city
+                                break;
+                            }
+
+                            // Handle click on suggestion items
                             $('.drop-suggestion-item-mobile').on('click', function() {
                                 var stationName = $(this).text().trim();
                                 var stationCode = $(this).data('code');
@@ -591,31 +680,31 @@ error_reporting(E_ALL);
         });
     });
 
-        $( function() {
-        $( "#pickDate" ).datepicker();
-        } );
-        $(document).ready(function(){
-            $('#pickTime').timepicker({});
-        });
-        $( function() {
-        $( "#dropDate" ).datepicker();
-        } );
-        $(document).ready(function(){
-            $('#dropTime').timepicker({});
-        });
-        // mobile
-        $( function() {
-        $( "#mobile_pickDate" ).datepicker();
-        } );
-        $(document).ready(function(){
-            $('#mobile_pickTime').timepicker({});
-        });
-        $( function() {
-        $( "#mobile_dropDate" ).datepicker();
-        } );
-        $(document).ready(function(){
-            $('#mobile_dropTime').timepicker({});
-        });
+    $( function() {
+    $( "#pickDate" ).datepicker();
+    } );
+    $(document).ready(function(){
+        $('#pickTime').timepicker({});
+    });
+    $( function() {
+    $( "#dropDate" ).datepicker();
+    } );
+    $(document).ready(function(){
+        $('#dropTime').timepicker({});
+    });
+    // mobile
+    $( function() {
+    $( "#mobile_pickDate" ).datepicker();
+    } );
+    $(document).ready(function(){
+        $('#mobile_pickTime').timepicker({});
+    });
+    $( function() {
+    $( "#mobile_dropDate" ).datepicker();
+    } );
+    $(document).ready(function(){
+        $('#mobile_dropTime').timepicker({});
+    });
 </script>
 </body>
 </html>
