@@ -1,3 +1,6 @@
+<?php
+session_start();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -30,6 +33,20 @@
     </style>
 <?php
 include 'dbconn.php';
+function formatDateAndTime($dateTimeString) {
+    // Convert the date-time string to a DateTime object
+    $dateTime = new DateTime($dateTimeString);
+    
+    // Format the date as YYYYMMDD
+    $formattedDate = $dateTime->format('Ymd');
+    
+    // Format the time as HHMM (24-hour format)
+    $formattedTime = $dateTime->format('Hi');
+    
+    // Return both values as an array
+    return [$formattedDate, $formattedTime];
+}
+$dataArray = $_SESSION['dataarray'];
 $cityName = "MEL";
 $sql = "SELECT * FROM `filter_locations` WHERE groupName Like 'MEL%'";
 $result = $conn->query($sql);
@@ -85,6 +102,12 @@ $locations = $result->fetch_all(MYSQLI_ASSOC);
     let pickupData = {};
     let dropoffData = {};
     let carCategory = "CDAR";
+    let infoObject = {
+        pickUpDateEuro: <?php echo json_encode(formatDateAndTime($dataArray['pickUpDateTime'])[0]); ?>,
+        pickUpTimeEuro: <?php echo json_encode(formatDateAndTime($dataArray['pickUpDateTime'])[1]); ?>,
+        dropOffDateEuro: <?php echo json_encode(formatDateAndTime($dataArray['dropOffDateTime'])[0]); ?>,
+        dropOffTimeEuro: <?php echo json_encode(formatDateAndTime($dataArray['dropOffDateTime'])[1]); ?>
+    };
     document.getElementById('pickupLocationName_div').addEventListener('click', function(event) {
         if (event.target && event.target.id === "locationName") {
             pickupData = {
@@ -135,9 +158,13 @@ $locations = $result->fetch_all(MYSQLI_ASSOC);
         let data = {
             carCategory: carCategory,
             pickup: pickupData,
-            dropoff: dropoffData
+            dropoff: dropoffData,
+            pickUpTime: infoObject.pickUpTimeEuro,
+            dropOffTime: infoObject.dropOffTimeEuro,
+            pickUpDate: infoObject.pickUpDateEuro,
+            dropOffDate: infoObject.dropOffDateEuro
         };
-        fetch('test.php', {
+        fetch('getQuote.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -146,14 +173,12 @@ $locations = $result->fetch_all(MYSQLI_ASSOC);
         })
         .then(response => response.json())
         .then(data => {
-            console.log(data); // Log the entire response for debugging
-            
-            // Check if the quote object is present
+            console.log(data);
+
             if (data.quote && data.quote.rate && data.quote.currency) {
                 const rate = data.quote.rate;
                 const currency = data.quote.currency;
 
-                // Update the HTML with rate and currency
                 const paymentInfoDiv = document.querySelector('.res_pay');
                 if (paymentInfoDiv) {
                     paymentInfoDiv.innerHTML += `
@@ -168,6 +193,7 @@ $locations = $result->fetch_all(MYSQLI_ASSOC);
         })
         .catch(error => console.log('Error:', error));
     }
+
 </script>
 </body>
 </html>

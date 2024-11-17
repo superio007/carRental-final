@@ -1,37 +1,32 @@
 <?php
 header('Content-Type: application/json');
 
-// Disable error reporting to prevent unintended output
-error_reporting(0);
+// Enable error reporting during development
+error_reporting(E_ALL);
 
-// Handle POST requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Get the raw input data
     $rawData = file_get_contents('php://input');
-
-    // Decode the JSON payload
     $data = json_decode($rawData, true);
 
-    // Check for errors in JSON decoding
     if (json_last_error() === JSON_ERROR_NONE) {
-        // Extract variables from the payload
         $carCategory = $data['carCategory'] ?? '';
         $pickup = $data['pickup'] ?? [];
         $dropoff = $data['dropoff'] ?? [];
         $pickEuro = $pickup['euro'] ?? '';
         $dropEuro = $dropoff['euro'] ?? '';
-        $pickHertz = $pickup['hertz'] ?? '';
-        $dropHertz = $dropoff['hertz'] ?? '';
+        $pickDate = $data['pickUpDate'] ?? '20241118';
+        $dropDate = $data['dropOffDate'] ?? '20241119';
+        $pickTime = $data['pickUpTime'] ?? '0900';
+        $droptime = $data['dropOffTime'] ?? '0900';
 
-        // Function to send XML request and get a quote
-        function getQuote($carCategory, $pickEuro, $dropEuro) {
+        function getQuote($carCategory, $pickEuro, $dropEuro, $pickDate, $dropDate,$pickTime,$dropTime) {
             $xmlRequestEuro = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
                 <message>
                     <serviceRequest serviceCode=\"getQuote\">
                         <serviceParameters>
                             <reservation carCategory=\"$carCategory\" rateId=\"RATE_ID\">
-                                <checkout stationID=\"$pickEuro\" date=\"20241118\" time=\"0900\"/>
-                                <checkin stationID=\"$dropEuro\" date=\"20241119\" time=\"0900\"/>
+                                <checkout stationID=\"$pickEuro\" date=\"$pickDate\" time=\"$pickTime\"/>
+                                <checkin stationID=\"$dropEuro\" date=\"$dropDate\" time=\"$dropTime\"/>
                             </reservation>
                             <driver countryOfResidence=\"AU\"/>
                         </serviceParameters>
@@ -64,24 +59,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             return ['response' => $response];
         }
 
-        // Call the function and get the response
-        $response = getQuote($carCategory, $pickEuro, $dropEuro);
-
-        // Parse XML response
+        $response = getQuote($carCategory, $pickEuro, $dropEuro, $pickDate, $dropDate,$pickTime,$droptime);
         $rate = 0;
         $currency = 'USD';
 
         if (isset($response['response']) && !empty($response['response'])) {
             $xml = simplexml_load_string($response['response']);
-
             if ($xml !== false && isset($xml->serviceResponse->reservation->quote)) {
                 $rate = (float) $xml->serviceResponse->reservation->quote['basePrice'];
                 $currency = (string) $xml->serviceResponse->reservation->quote['currency'];
             }
         }
 
-        // Prepare final response
-        $finalResponse = [
+        echo json_encode([
             'carCategory' => $carCategory,
             'pickup' => $pickup,
             'dropoff' => $dropoff,
@@ -89,16 +79,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'rate' => $rate,
                 'currency' => $currency
             ]
-        ];
-
-        // Return the response as JSON
-        echo json_encode($finalResponse);
+        ]);
     } else {
-        // Respond with an error
         echo json_encode(['error' => 'Invalid JSON payload']);
     }
 } else {
-    // Respond with an error if not POST
     echo json_encode(['error' => 'Invalid request method']);
 }
 ?>

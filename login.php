@@ -48,13 +48,8 @@ session_start();
     return $randomString;
   }
   if ($_SERVER['REQUEST_METHOD'] == "POST" && isset($_POST['log-submit'])) {
-    $sql = "SELECT * FROM `users`";
-    $result = $conn->query($sql);
-    if ($result->num_rows > 0) {
-      // output data of each row
-      while ($row = $result->fetch_assoc()) {
         // Compare email and password (make sure to hash passwords if not done already)
-        if ($row['Email'] == $logemail && $row['Password'] == $logpass) { // Ideally, use password_verify() if using hashed passwords
+        if ("dhokekiran98@gmail.com" == $logemail && "1234567" == $logpass) { // Ideally, use password_verify() if using hashed passwords
             echo "
             <script>
             Swal.fire({
@@ -96,10 +91,6 @@ session_start();
     </script>
     ";
     
-    } else {
-      
-    }
-  }
   if ($_SERVER['REQUEST_METHOD'] == "POST" && isset($_POST['sign-submit'])) {
     $alphaNumericCode = generateAlphaNumericCode();
     $sql = "INSERT INTO `users`(`Id`, `Name`, `Email`, `Password`,`AccessId`) VALUES ('','$signName','$signEmail','$signPass','$alphaNumericCode')";

@@ -1,48 +1,89 @@
-// getQuote.php
 <?php
 header('Content-Type: application/json');
 
+// Enable error reporting during development
+error_reporting(E_ALL);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $carCategory = $_POST['carCategory'];
-    $infoArray = json_decode($_POST['infoArray'], true);
+    $rawData = file_get_contents('php://input');
+    $data = json_decode($rawData, true);
 
+    if (json_last_error() === JSON_ERROR_NONE) {
+        $carCategory = $data['carCategory'] ?? '';
+        $pickup = $data['pickup'] ?? [];
+        $dropoff = $data['dropoff'] ?? [];
+        $pickEuro = $pickup['euro'] ?? '';
+        $dropEuro = $dropoff['euro'] ?? '';
+        $pickDate = $data['pickUpDate'] ?? '20241118';
+        $dropDate = $data['dropOffDate'] ?? '20241119';
+        $pickTime = $data['pickUpTime'] ?? '0900';
+        $droptime = $data['dropOffTime'] ?? '0900';
 
-    function getQuote($carCategory, $infoArray) {
-        $xmlRequestEuro = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-            <message>
-                <serviceRequest serviceCode=\"getQuote\">
-                    <serviceParameters>
-                        <reservation carCategory=\"$carCategory\" rateId=\"RATE_ID\">
-                            <checkout stationID=\"$infoArray[pickupEuro]\" date=\"$infoArray[pickUpDateEuro]\" time=\"$infoArray[pickUpTimeEuro]\"/>
-                            <checkin stationID=\"$infoArray[dropOffEuro]\" date=\"$infoArray[dropOffDateEuro]\" time=\"$infoArray[dropOffTimeEuro]\"/>
-                        </reservation>
-                        <driver countryOfResidence=\"AU\"/>
-                    </serviceParameters>
-                </serviceRequest>
-            </message>";
+        function getQuote($carCategory, $pickEuro, $dropEuro, $pickDate, $dropDate,$pickTime,$dropTime) {
+            $xmlRequestEuro = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+                <message>
+                    <serviceRequest serviceCode=\"getQuote\">
+                        <serviceParameters>
+                            <reservation carCategory=\"$carCategory\" rateId=\"RATE_ID\">
+                                <checkout stationID=\"$pickEuro\" date=\"$pickDate\" time=\"$pickTime\"/>
+                                <checkin stationID=\"$dropEuro\" date=\"$dropDate\" time=\"$dropTime\"/>
+                            </reservation>
+                            <driver countryOfResidence=\"AU\"/>
+                        </serviceParameters>
+                    </serviceRequest>
+                </message>";
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'https://applications-ptn.europcar.com/xrs/resxml');
-        curl_setopt($ch, CURLOPT_POST, 1);
-        $postFields = http_build_query([
-            'XML-Request' => $xmlRequestEuro,
-            'callerCode' => '1132097',
-            'password' => '02092024',
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, 'https://applications-ptn.europcar.com/xrs/resxml');
+            curl_setopt($ch, CURLOPT_POST, 1);
+            $postFields = http_build_query([
+                'XML-Request' => $xmlRequestEuro,
+                'callerCode' => '1132097',
+                'password' => '02092024',
+            ]);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/x-www-form-urlencoded',
+                'Accept: text/xml'
+            ]);
+
+            $response = curl_exec($ch);
+            $error = curl_error($ch);
+            curl_close($ch);
+
+            if ($error) {
+                return ['error' => 'cURL Error: ' . $error];
+            }
+
+            return ['response' => $response];
+        }
+
+        $response = getQuote($carCategory, $pickEuro, $dropEuro, $pickDate, $dropDate,$pickTime,$droptime);
+        $rate = 0;
+        $currency = 'USD';
+
+        if (isset($response['response']) && !empty($response['response'])) {
+            $xml = simplexml_load_string($response['response']);
+            if ($xml !== false && isset($xml->serviceResponse->reservation->quote)) {
+                $rate = (float) $xml->serviceResponse->reservation->quote['basePrice'];
+                $currency = (string) $xml->serviceResponse->reservation->quote['currency'];
+            }
+        }
+
+        echo json_encode([
+            'carCategory' => $carCategory,
+            'pickup' => $pickup,
+            'dropoff' => $dropoff,
+            'quote' => [
+                'rate' => $rate,
+                'currency' => $currency
+            ]
         ]);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/x-www-form-urlencoded',
-            'Accept: text/xml'
-        ]);
-
-        $response = curl_exec($ch);
-        curl_close($ch);
-        return $response;
+    } else {
+        echo json_encode(['error' => 'Invalid JSON payload']);
     }
-
-    echo json_encode(getQuote($carCategory, $infoArray));
 } else {
-    echo json_encode(["error" => "Invalid request"]);
+    echo json_encode(['error' => 'Invalid request method']);
 }
 ?>

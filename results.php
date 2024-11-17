@@ -385,7 +385,13 @@ session_start();
             // echo "</pre>";
         }
     }
+    $cityName = "MEL";
+    $sql = "SELECT * FROM `filter_locations` WHERE groupName Like 'MEL%'";
+    $result = $conn->query($sql);
 
+    // Fetch all rows into an array
+    $locations = $result->fetch_all(MYSQLI_ASSOC);
+    $conn->close();
     ?>
     <?php include 'header.php'; ?>
     <div>
@@ -1434,6 +1440,47 @@ session_start();
                             }
                         ?>
                     </div>
+                    <div class="row" id="showLocation">
+                        <div class="col-4">
+                            <div>
+                                <p class="text-center mt-3">Pick Up Location</p>
+                            </div>
+                            <div id="pickupLocationName_div">
+                                <?php foreach ($locations as $row): ?>
+                                    <p id="locationName" dataHertz="<?php echo $row['citycode']; ?>" dataEuro="<?php echo $row['stationCode']; ?>"><?php echo $row['cityaddress']; ?></p>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div>
+                                <p class="text-center mt-3">Drop Off Location</p>
+                            </div>
+                            <div id="dropoffLocationName_div">
+                                <?php foreach ($locations as $row1): ?>
+                                    <p id="locationName" dataHertz="<?php echo $row1['citycode']; ?>" dataEuro="<?php echo $row1['stationCode']; ?>"><?php echo $row1['cityaddress']; ?></p>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div>
+                                <p class="text-center mt-3">Payment Information</p>
+                            </div>
+                            <div class="res_pay">
+                                <div>
+                                    <p>Insurances Package</p>
+                                    <p>Rates starting at ...</p>
+                                </div>
+                                <div>
+
+                                </div>
+                            </div>
+                            <div class="res_pay">
+                                <div class="d-flex">
+                                    <a href="book.php?reference=' . $reference . '&vdNo=Euro" class="btn btn-primary">BOOK NOW</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <!-- results cards Euro mobile-->
@@ -1545,14 +1592,17 @@ session_start();
     document.addEventListener("DOMContentLoaded", function() {
         document.querySelector('.loader_div').classList.replace("d-grid", "d-none");
         document.querySelector('.results_div').classList.remove('d-none');
+        let pickupSelected = false;
+        let dropoffSelected = false;
+        let pickupData = {};
+        let dropoffData = {};
+        let carCategory = "CDAR";
         let infoObject = {
             pickUpDateEuro: <?php echo json_encode(formatDateAndTime($dataArray['pickUpDateTime'])[0]); ?>,
             pickUpTimeEuro: <?php echo json_encode(formatDateAndTime($dataArray['pickUpDateTime'])[1]); ?>,
             dropOffDateEuro: <?php echo json_encode(formatDateAndTime($dataArray['dropOffDateTime'])[0]); ?>,
             dropOffTimeEuro: <?php echo json_encode(formatDateAndTime($dataArray['dropOffDateTime'])[1]); ?>
         };
-
-        
 
         const categoriesEuro = {
             Economy: ['CDAR', 'XZAR'],
@@ -1706,7 +1756,92 @@ session_start();
             }
         });
     });
+    // for below results div
+    document.getElementById('pickupLocationName_div').addEventListener('click', function(event) {
+        if (event.target && event.target.id === "locationName") {
+            pickupData = {
+                hertz: event.target.getAttribute('dataHertz'),
+                euro: event.target.getAttribute('dataEuro')
+            };
+            console.log(`Pickup location: Hertz - ${pickupData.hertz}, Euro - ${pickupData.euro}`);
+            if (pickupData.hertz || pickupData.euro) {
+                let prevSelected = document.querySelector('#pickupLocationName_div .selected');
+                if (prevSelected) {
+                    prevSelected.classList.remove('selected');
+                }
+                event.target.classList.add('selected');
+                pickupSelected = true;
+            } else {
+                console.log('Error: Missing data attributes');
+            }
+        }
+        if (pickupSelected && dropoffSelected) {
+            callGetQuote();
+        }
+    });
 
+    document.getElementById('dropoffLocationName_div').addEventListener('click', function(event) {
+        if (event.target && event.target.id === "locationName") {
+            dropoffData = {
+                hertz: event.target.getAttribute('dataHertz'),
+                euro: event.target.getAttribute('dataEuro')
+            };
+            console.log(`Dropoff location: Hertz - ${dropoffData.hertz}, Euro - ${dropoffData.euro}`);
+            if (dropoffData.hertz || dropoffData.euro) {
+                let prevSelected = document.querySelector('#dropoffLocationName_div .selected');
+                if (prevSelected) {
+                    prevSelected.classList.remove('selected');
+                }
+                event.target.classList.add('selected');
+                dropoffSelected = true;
+            } else {
+                console.log('Error: Missing data attributes');
+            }
+        }
+        if (pickupSelected && dropoffSelected) {
+            callGetQuote();
+        }
+    });
+
+    function callGetQuote() {
+        let data = {
+            carCategory: carCategory,
+            pickup: pickupData,
+            dropoff: dropoffData,
+            pickUpTime: infoObject.pickUpTimeEuro,
+            dropOffTime: infoObject.dropOffTimeEuro,
+            pickUpDate: infoObject.pickUpDateEuro,
+            dropOffDate: infoObject.dropOffDateEuro
+        };
+        fetch('getQuote.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+
+            if (data.quote && data.quote.rate && data.quote.currency) {
+                const rate = data.quote.rate;
+                const currency = data.quote.currency;
+
+                const paymentInfoDiv = document.querySelector('.res_pay');
+                if (paymentInfoDiv) {
+                    paymentInfoDiv.innerHTML += `
+                        <div>
+                            <p>Rental Rate: ${rate} ${currency}</p>
+                        </div>
+                    `;
+                }
+            } else {
+                console.error('Quote details are missing in the response');
+            }
+        })
+        .catch(error => console.log('Error:', error));
+    }
 </script>
 
 </html>
