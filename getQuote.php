@@ -6,6 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $carCategory = $_POST['carCategory'];
     $infoArray = json_decode($_POST['infoArray'], true);
 
+
     function getQuote($carCategory, $infoArray) {
         $xmlRequestEuro = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
             <message>

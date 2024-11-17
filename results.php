@@ -37,7 +37,9 @@ session_start();
         echo "No XML response available in session.";
     }
     $dataArray = $_SESSION['dataarray'];
-    var_dump($dataArray);
+    $requiredeuroBooking = $_SESSION['requiredeuroBooking'];
+    var_dump($requiredeuroBooking);
+    // var_dump($dataArray);
     require "dbconn.php";
     $pickUp = $dataArray['pickLocation'] ?? '';
     $drop = $dataArray['dropLocation'] ?? '';
@@ -72,8 +74,8 @@ session_start();
         return [$formattedDate, $formattedTime];
     }
     $infoArray = [
-        'pickupEuro' => $dataArray['pickLocation'],
-        'dropOffEuro' => $dataArray['dropLocation'],
+        'pickupEuro' => $requiredeuroBooking['pickup'],
+        'dropOffEuro' => $requiredeuroBooking['dropOff'],
         'pickUpDateEuro' => formatDateAndTime($dataArray['pickUpDateTime'])[0],
         'pickUpTimeEuro' => formatDateAndTime($dataArray['pickUpDateTime'])[1],
         'dropOffDateEuro' => formatDateAndTime($dataArray['dropOffDateTime'])[0],    
@@ -93,7 +95,7 @@ session_start();
                 </serviceParameters>
             </serviceRequest>
         </message>";
-
+        // var_dump($xmlRequestEuro);
         // Initialize cURL
         $ch = curl_init();
 
@@ -1208,11 +1210,11 @@ session_start();
                         var_dump($final);
                         ?>
                     </div>
-                    <div class="res_card">
+                    <!-- <div class="res_card">
                         <div class="col-4"></div>
                         <div class="col-4"></div>
                         <div class="col-4"></div>
-                    </div>
+                    </div> -->
                 </div>
             </div>
             <!-- results cards ZR mobile-->
@@ -1349,8 +1351,11 @@ session_start();
 
                                     // Calculate markup safely
                                     $final = is_numeric($rate) ? calculatePercentage($markUp, $rate) : "Not Available";
-
-                                    $currency = (string)$xml->serviceResponse->reservation->quote['currency'];// Placeholder for currency
+                                    if($xml->serviceResponse->reservation->quote['currency'] != null){
+                                        $currency = (string)$xml->serviceResponse->reservation->quote['currency'];
+                                    }else{
+                                        $currency = "AUD"; 
+                                    }
                                     $vendor = "Euro"; // Example vendor
                                     $vendorLogo = "./images/EuroCar.svg"; // Placeholder for vendor logo
                                     $reference = (string) $vehicle['carCategoryCode']; // Car category code as reference
@@ -1540,7 +1545,15 @@ session_start();
     document.addEventListener("DOMContentLoaded", function() {
         document.querySelector('.loader_div').classList.replace("d-grid", "d-none");
         document.querySelector('.results_div').classList.remove('d-none');
+        let infoObject = {
+            pickUpDateEuro: <?php echo json_encode(formatDateAndTime($dataArray['pickUpDateTime'])[0]); ?>,
+            pickUpTimeEuro: <?php echo json_encode(formatDateAndTime($dataArray['pickUpDateTime'])[1]); ?>,
+            dropOffDateEuro: <?php echo json_encode(formatDateAndTime($dataArray['dropOffDateTime'])[0]); ?>,
+            dropOffTimeEuro: <?php echo json_encode(formatDateAndTime($dataArray['dropOffDateTime'])[1]); ?>
+        };
+
         
+
         const categoriesEuro = {
             Economy: ['CDAR', 'XZAR'],
             Compact: ['CFAR', 'DFAR', 'CDAR', 'XZAR'],
@@ -1599,6 +1612,7 @@ session_start();
                 }
             });
         });
+        
     });
     document.querySelectorAll('td.text-center').forEach(function(td) {
         td.addEventListener('click', function() {
