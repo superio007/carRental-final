@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OTA_VehAvailRateRS xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.opentravel.org/OTA/2003/05" Target="Production" Version="2.007">
+    <Success/>
+    <Warnings>
+        <Warning Type="1" ShortText="TOLL CHARGE APPLIES" RecordID="510"/>
+        <Warning Type="1" ShortText="CREDIT CARD SURCHARGE OF 1.35% APPLIES TO QUALIFYING RENTALS" RecordID="766"/>
+        <Warning Type="1" ShortText="A BOND MAY APPLY." RecordID="767"/>
+    </Warnings>
+    <VehAvailRSCore>
+        <VehRentalCore PickUpDateTime="2024-11-19T10:00:00-06:00" ReturnDateTime="2024-11-20T10:00:00-06:00">
+            <PickUpLocation ExtendedLocationCode="MELT50" LocationCode="MELE" CodeContext="IATA"/>
+            <ReturnLocation ExtendedLocationCode="MELT50" LocationCode="MELE" CodeContext="IATA"/>
+        </VehRentalCore>
+        <VehVendorAvails>
+            <VehVendorAvail>
+                <Vendor Code="ZE"/>
+                <VehAvails>
+                    <VehAvail>
+                        <VehAvailCore Status="Available" IsAlternateInd="false">
+                            <Vehicle PassengerQuantity="7" BaggageQuantity="5" AirConditionInd="true" TransmissionType="Automatic" FuelType="Unspecified" DriveType="4WD" Code="PFBR" CodeContext="SIPP">
+                                <VehType VehicleCategory="3"/>
+                                <VehClass Size="10"/>
+                                <VehMakeModel Name="R TOYOTA LANDCRUISER PRADO OR SIMILAR" Code="PFBR"/>
+                                <PictureURL>ZEAUPFBR999.jpg</PictureURL>
+                            </Vehicle>
+                            <RentalRate>
+                                <RateDistance Unlimited="false" Quantity="200" DistUnitName="Km" VehiclePeriodUnitName="RentalPeriod"/>
+                                <VehicleCharges>
+                                    <VehicleCharge Purpose="1" TaxInclusive="false" GuaranteedInd="true" Amount="137.44" CurrencyCode="AUD" IncludedInRate="false">
+                                        <TaxAmounts>
+                                            <TaxAmount Total="19.89" CurrencyCode="AUD" Percentage="10.00" Description="Tax"/>
+                                        </TaxAmounts>
+                                        <Calculation UnitCharge="137.44" UnitName="Day" Quantity="1"/>
+                                    </VehicleCharge>
+                                    <VehicleCharge Purpose="8" TaxInclusive="false" GuaranteedInd="true" Amount="0.30" CurrencyCode="AUD" IncludedInRate="false">
+                                        <Calculation UnitCharge="0.30" UnitName="Km" Quantity="1"/>
+                                    </VehicleCharge>
+                                </VehicleCharges>
+                                <RateQualifier ArriveByFlight="false" RateCategory="3" RateQualifier="D01NAU"/>
+                            </RentalRate>
+                            <TotalCharge RateTotalAmount="137.44" EstimatedTotalAmount="218.81" CurrencyCode="AUD"/>
+                            <Fees>
+                                <Fee Purpose="5" TaxInclusive="false" Description="LOCATION FEE:" Amount="48.17" CurrencyCode="AUD"/>
+                                <Fee Purpose="5" TaxInclusive="false" Description="ADMN RECOVERY:" Amount="4.81" CurrencyCode="AUD"/>
+                                <Fee Purpose="5" TaxInclusive="false" Description="VEHICLE REGISTRATION RECOVERY:" Amount="8.50" CurrencyCode="AUD"/>
+                            </Fees>
+                            <Reference Type="16" ID="58WNH89GVI91782-2101"/>
+                        </VehAvailCore>
+                        <VehAvailInfo>
+                            <PricedCoverages>
+                                <PricedCoverage Required="false">
+                                    <Coverage CoverageType="24"/>
+                                    <Charge TaxInclusive="false" IncludedInRate="false" CurrencyCode="AUD">
+                                        <Calculation UnitCharge="50.00" UnitName="Day" Quantity="1"/>
+                                    </Charge>
+                                </PricedCoverage>
+                                <PricedCoverage Required="false">
+                                    <Coverage CoverageType="56"/>
+                                    <Charge TaxInclusive="false" IncludedInRate="false" CurrencyCode="AUD">
+                                        <Calculation UnitCharge="50.00" UnitName="Day" Quantity="1"/>
+                                    </Charge>
+                                </PricedCoverage>
+                            </PricedCoverages>
+                        </VehAvailInfo>
+                    </VehAvail>
+                </VehAvails>
+                <Info>
+                    <LocationDetails Name="MELBOURNE APT">
+                        <Address FormattedInd="false">
+                            <AddressLine>ARRIVAL DRIVE</AddressLine>
+                            <AddressLine>TULLAMARINE</AddressLine>
+                            <CityName>MELBOURNE, VIC (1)</CityName>
+                            <PostalCode>3045</PostalCode>
+                            <StateProv StateCode="VI">VICTORIA</StateProv>
+                            <CountryName Code="AU">AUSTRALIA</CountryName>
+                        </Address>
+                        <Telephone PhoneLocationType="4" PhoneTechType="1" PhoneNumber="0383129590" FormattedInd="false"/>
+                        <AdditionalInfo>
+                            <ParkLocation Location="1"/>
+                            <CounterLocation Location="1"/>
+                            <OperationSchedules>
+                                <OperationSchedule>
+                                    <OperationTimes>
+                                        <OperationTime Text="MON-FRI 0600-0100 SAT 0700-2200 SUN 0700-2400"/>
+                                        <OperationTime Mon="true" Start="00:01" End="01:00"/>
+                                        <OperationTime Mon="true" Start="06:00" End="23:59"/>
+                                        <OperationTime Tue="true" Start="00:01" End="01:00"/>
+                                        <OperationTime Tue="true" Start="06:00" End="23:59"/>
+                                        <OperationTime Weds="true" Start="00:01" End="01:00"/>
+                                        <OperationTime Weds="true" Start="06:00" End="23:59"/>
+                                        <OperationTime Thur="true" Start="00:01" End="01:00"/>
+                                        <OperationTime Thur="true" Start="06:00" End="23:59"/>
+                                        <OperationTime Fri="true" Start="00:01" End="01:00"/>
+                                        <OperationTime Fri="true" Start="06:00" End="23:59"/>
+                                        <OperationTime Sat="true" Start="07:00" End="22:00"/>
+                                        <OperationTime Sun="true" Start="07:00" End="23:59"/>
+                                    </OperationTimes>
+                                </OperationSchedule>
+                            </OperationSchedules>
+                        </AdditionalInfo>
+                    </LocationDetails>
+                </Info>
+            </VehVendorAvail>
+        </VehVendorAvails>
+    </VehAvailRSCore>
+</OTA_VehAvailRateRS>

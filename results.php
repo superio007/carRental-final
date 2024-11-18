@@ -19,7 +19,7 @@ session_start();
 
 <body>
     <?php
-    if(!isset($_SESSION['jwtToken'])){
+    if (!isset($_SESSION['jwtToken'])) {
         echo "<script>window.location.href='login.php';</script>";
     }
     $responseZE = $_SESSION['responseZE'];
@@ -60,16 +60,17 @@ session_start();
         }
     }
     // $conn->close();
-    function formatDateAndTime($dateTimeString) {
+    function formatDateAndTime($dateTimeString)
+    {
         // Convert the date-time string to a DateTime object
         $dateTime = new DateTime($dateTimeString);
-        
+
         // Format the date as YYYYMMDD
         $formattedDate = $dateTime->format('Ymd');
-        
+
         // Format the time as HHMM (24-hour format)
         $formattedTime = $dateTime->format('Hi');
-        
+
         // Return both values as an array
         return [$formattedDate, $formattedTime];
     }
@@ -78,10 +79,11 @@ session_start();
         'dropOffEuro' => $requiredeuroBooking['dropOff'],
         'pickUpDateEuro' => formatDateAndTime($dataArray['pickUpDateTime'])[0],
         'pickUpTimeEuro' => formatDateAndTime($dataArray['pickUpDateTime'])[1],
-        'dropOffDateEuro' => formatDateAndTime($dataArray['dropOffDateTime'])[0],    
+        'dropOffDateEuro' => formatDateAndTime($dataArray['dropOffDateTime'])[0],
         'dropOffTimeEuro' => formatDateAndTime($dataArray['dropOffDateTime'])[1],
     ];
-    function getQuote($carCategory , $infoArray){
+    function getQuote($carCategory, $infoArray)
+    {
         // Build XML request
         $xmlRequestEuro = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
         <message>
@@ -105,17 +107,17 @@ session_start();
 
         // URL-encode the parameters (XML Request, callerCode, and password)
         $postFields = http_build_query([
-        'XML-Request' => $xmlRequestEuro,
-        'callerCode' => '1132097', // Replace with your actual caller code
-        'password' => '02092024', // Replace with your actual password
+            'XML-Request' => $xmlRequestEuro,
+            'callerCode' => '1132097', // Replace with your actual caller code
+            'password' => '02092024', // Replace with your actual password
         ]);
 
         // Set the POST fields and headers
         curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/x-www-form-urlencoded',
-        'Accept: text/xml'
+            'Content-Type: application/x-www-form-urlencoded',
+            'Accept: text/xml'
         ]);
 
         // Execute the cURL request
@@ -152,14 +154,14 @@ session_start();
         '7-12PassengerVans' => [2] // Not in the XML
     ];
     $categoriesEuro = [
-        'Economy' => ['CDAR','XZAR'], // Replace with actual car codes for Economy
-        'Compact' => ['CFAR', 'DFAR', 'CDAR','XZAR'],
-        'Midsize' => ['IDAR','ICAE','ICAR','IDAE','IFAR','XZAR'],
-        'Luxury/Sports Car' => ['JDAR', 'LDAR', 'DFFR', 'SFGV','FDFE','LFAE','PZAR'],
-        'SUV' => ['SFAR', 'JFAR','SFAH','SFBD','SFBR','SFDR','GFAR','FFAR','UFAD','XZAR'],
-        'Station Wagon' => ['FWAR','GWAR','FWAR','XZAR'],
-        'Van/People Carrier' => ['PVAR','PVAV','KMLW','KPLW','XZAR'],
-        '7-12 Passenger Vans' => ['UFAD','XZAR'] // Replace with actual codes if necessary
+        'Economy' => ['CDAR', 'XZAR'], // Replace with actual car codes for Economy
+        'Compact' => ['CFAR', 'DFAR', 'CDAR', 'XZAR'],
+        'Midsize' => ['IDAR', 'ICAE', 'ICAR', 'IDAE', 'IFAR', 'XZAR'],
+        'Luxury/Sports Car' => ['JDAR', 'LDAR', 'DFFR', 'SFGV', 'FDFE', 'LFAE', 'PZAR'],
+        'SUV' => ['SFAR', 'JFAR', 'SFAH', 'SFBD', 'SFBR', 'SFDR', 'GFAR', 'FFAR', 'UFAD', 'XZAR'],
+        'Station Wagon' => ['FWAR', 'GWAR', 'FWAR', 'XZAR'],
+        'Van/People Carrier' => ['PVAR', 'PVAV', 'KMLW', 'KPLW', 'XZAR'],
+        '7-12 Passenger Vans' => ['UFAD', 'XZAR'] // Replace with actual codes if necessary
     ];
     //function to display Euro Cars
     function extractVehicleDetailsEuro($xmlResponse, $categoriesEuro)
@@ -242,7 +244,7 @@ session_start();
         echo "0 results";
     }
     // echo $markUp;
-    $conn->close();
+
     $vehicleDetailsEuro = extractVehicleDetailsEuro($xmlresEuro, $categoriesEuro);
     $vehicleDetailsZE = extractVehicleDetails($xmlresZE, $categories);
     $vehicleDetailsZT = extractVehicleDetails($xmlresZT, $categories);
@@ -260,20 +262,21 @@ session_start();
         return $percentage + $og;
     }
     //To filter Euro car's based on filters 
-    function filterVehicles($xmlresEuro, $transmission = '', $doors = '', $fuelTypes = []) {
+    function filterVehicles($xmlresEuro, $transmission = '', $doors = '', $fuelTypes = [])
+    {
         $vehicleDetails = []; // Array to store filtered vehicles
-    
+
         // Loop through the car categories provided in the XML
         foreach ($xmlresEuro->serviceResponse->carCategoryList->carCategory as $vehicle) {
             $matches = true; // Flag to track if the vehicle matches all conditions
-    
+
             // Filter by transmission (automatic or manual)
             if ($transmission === 'Automatic' && (string)$vehicle['carCategoryAutomatic'] !== "Y") {
                 $matches = false;
             } elseif ($transmission === 'Manual' && (string)$vehicle['carCategoryAutomatic'] !== "N") {
                 $matches = false;
             }
-    
+
             if ($doors === '4+') {
                 // Check if the vehicle has 4 or more doors
                 if ((int)$vehicle['carCategoryDoors'] < 4) {
@@ -282,18 +285,18 @@ session_start();
             } elseif ($doors && (string)$vehicle['carCategoryDoors'] !== $doors) {
                 $matches = false;
             }
-    
+
             // Filter by fuel type
             if (!empty($fuelTypes) && !in_array((string)$vehicle['carCategoryType'], $fuelTypes)) {
                 $matches = false;
             }
-    
+
             // If the vehicle matches all the filters, add it to the result array
             if ($matches) {
                 $vehicleDetails[] = $vehicle;
             }
         }
-    
+
         return $vehicleDetails; // Return the filtered vehicle details
     }
     if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['search'])) {
@@ -306,12 +309,12 @@ session_start();
         if (isset($transmission)) {
             // Function to filter XML based on the specified criteria
             $filteredVehicles = filterVehicles($xmlresEuro, $transmission, $doors, $fuelTypes); // Filter vehicles
-    
+
             // Create the exact XML structure
             $messageXml = new SimpleXMLElement('<message></message>');
             $serviceResponse = $messageXml->addChild('serviceResponse');
             $carCategoryList = $serviceResponse->addChild('carCategoryList');
-    
+
             foreach ($filteredVehicles as $vehicle) {
                 // Clone the vehicle's structure and attributes from the original XML
                 $carCategory = $carCategoryList->addChild('carCategory');
@@ -319,14 +322,14 @@ session_start();
                     $carCategory->addAttribute($key, $value);
                 }
             }
-    
+
             // Output the filtered XML (keeping the original structure intact)
             // header('Content-Type: text/xml'); // Ensure correct content type is set
             // echo "<pre>";
             // var_dump($messageXml); // Display the XML structure
             // echo "</pre>";
             $xmlresEuro = $messageXml;
-           
+
             function filter($filterContent, $transmission = '', $doors = '', $mileage = '', $fuelTypes = [])
             {
                 $vehicleDetails = [];
@@ -385,14 +388,39 @@ session_start();
             // echo "</pre>";
         }
     }
-    $cityName = "MEL";
-    $sql = "SELECT * FROM `filter_locations` WHERE groupName Like 'MEL%'";
+    $cityName = $dataArray['groupName'];
+    echo $cityName;
+    $sql = "SELECT * FROM `filter_locations` WHERE groupName Like '$cityName%'";
     $result = $conn->query($sql);
 
     // Fetch all rows into an array
     $locations = $result->fetch_all(MYSQLI_ASSOC);
     $conn->close();
     ?>
+    <style>
+        .showQuote {
+            background-color: #d4d4d4;
+            height: 27rem;
+        }
+
+        #dropoffLocationName_div,
+        #pickupLocationName_div {
+            cursor: pointer;
+            overflow-y: scroll;
+            height: 22rem;
+        }
+
+        #locationName {
+            padding: 10px;
+            border: 1px solid #d4d4d4;
+        }
+
+        .selected {
+            background-color: #bfe6e6;
+            color: white;
+            padding: 1rem;
+        }
+    </style>
     <?php include 'header.php'; ?>
     <div>
         <div class="modal fade bd-example-modal-lg" tabindex="-1" id="popUp" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
@@ -553,7 +581,7 @@ session_start();
                 </div>
             </div>
             <!-- price table desktop-->
-            <div id="price_table" class="container d-none d-md-block">  
+            <div id="price_table" class="container d-none d-md-block">
                 <table class="table table-bordered my-4">
                     <thead>
                         <tr>
@@ -603,7 +631,7 @@ session_start();
                                 $found = false; // Track if we find a vehicle in the category
                                 $dataSize = implode(',', $codes); // Dynamically generate the sizes for data-size
                                 echo '<td class="text-center Euro" data-size="' . $dataSize . '">';
-                                    echo '<span id="Euro_Price">Not Available</span>';
+                                echo '<span id="Euro_Price">Not Available</span>';
                                 echo '</td>';
                             }
                             ?>
@@ -616,7 +644,7 @@ session_start();
                                         <?php foreach ($vehicleDetailsZE[$category] as $details): ?>
                                             <?php
                                             // Output the rate and the code
-                                            echo 'AUD ' . number_format(calculatePercentage($markUp,$details['rate']), 2);
+                                            echo 'AUD ' . number_format(calculatePercentage($markUp, $details['rate']), 2);
                                             ?>
                                             <br>
                                             <!-- <input type="text" value="<?php echo $details['code']; ?>" hidden> -->
@@ -638,7 +666,7 @@ session_start();
                                         <?php foreach ($vehicleDetailsZR[$category] as $details): ?>
                                             <?php
                                             // Output the rate and the code
-                                            echo 'AUD ' . number_format(calculatePercentage($markUp,$details['rate']), 2);
+                                            echo 'AUD ' . number_format(calculatePercentage($markUp, $details['rate']), 2);
                                             ?>
                                             <br>
                                             <!-- <input type="text" value="<?php echo $details['code']; ?>" hidden> -->
@@ -660,7 +688,7 @@ session_start();
                                         <?php foreach ($vehicleDetailsZT[$category] as $details): ?>
                                             <?php
                                             // Output the rate and the code
-                                            echo 'AUD ' . number_format(calculatePercentage($markUp,$details['rate']), 2);
+                                            echo 'AUD ' . number_format(calculatePercentage($markUp, $details['rate']), 2);
                                             ?>
                                             <br>
                                             <!-- <input type="text" value="<?php echo $details['code']; ?>" hidden> -->
@@ -693,7 +721,7 @@ session_start();
                                     $found = false;
                                     $dataSize = implode(',', $codes);
                                     echo '<td class="text-center mobile" data-size="' . $dataSize . '">';
-                                        echo '<span id="Euro_Price">Not Available</span>';
+                                    echo '<span id="Euro_Price">Not Available</span>';
                                     echo '</td>';
                                 }
                                 ?>
@@ -706,7 +734,7 @@ session_start();
                                         <?php if (isset($vehicleDetailsZE[$category])): ?>
                                             <?php foreach ($vehicleDetailsZE[$category] as $details): ?>
                                                 <?php
-                                                echo 'AUD ' . number_format(calculatePercentage($markUp,$details['rate']), 2);
+                                                echo 'AUD ' . number_format(calculatePercentage($markUp, $details['rate']), 2);
                                                 ?>
                                                 <br>
                                                 <?php break; ?>
@@ -727,7 +755,7 @@ session_start();
                                             <?php foreach ($vehicleDetailsZR[$category] as $details): ?>
                                                 <?php
                                                 // Output the rate and the code
-                                                echo 'AUD ' . number_format(calculatePercentage($markUp,$details['rate']), 2);
+                                                echo 'AUD ' . number_format(calculatePercentage($markUp, $details['rate']), 2);
                                                 ?>
                                                 <br>
                                                 <!-- <input type="text" value="<?php echo $details['code']; ?>" hidden> -->
@@ -749,7 +777,7 @@ session_start();
                                         <?php if (isset($vehicleDetailsZT[$category])): ?>
                                             <?php foreach ($vehicleDetailsZT[$category] as $details): ?>
                                                 <?php
-                                                echo 'AUD ' . number_format(calculatePercentage($markUp,$details['rate']), 2);
+                                                echo 'AUD ' . number_format(calculatePercentage($markUp, $details['rate']), 2);
                                                 ?>
                                                 <br>
                                                 <?php break; ?>
@@ -847,8 +875,8 @@ session_start();
                                                     <p>Rates starting at ...</p>
                                                 </div>
                                                 <div>
-                                                    <p>'."Net : " . $currency . ' ' . number_format($rate,2) . '</p>
-                                                    <p>'."Markup : " . $currency . ' ' . number_format($final,2) . '</p>
+                                                    <p>' . "Net : " . $currency . ' ' . number_format($rate, 2) . '</p>
+                                                    <p>' . "Markup : " . $currency . ' ' . number_format($final, 2) . '</p>
                                                 </div>
                                             </div>
                                             <div class="res_pay">
@@ -934,8 +962,8 @@ session_start();
                                                     <p>Rates starting at ...</p>
                                                 </div>
                                                 <div>
-                                                    <p>'."Net : " . $currency . ' ' . number_format($rate,2) . '</p>
-                                                    <p>'."Markup : " . $currency . ' ' . number_format($final,2) . '</p>
+                                                    <p>' . "Net : " . $currency . ' ' . number_format($rate, 2) . '</p>
+                                                    <p>' . "Markup : " . $currency . ' ' . number_format($final, 2) . '</p>
                                                 </div>
                                             </div>
                                             <div class="res_pay">
@@ -1021,8 +1049,8 @@ session_start();
                                                     <p>Rates starting at ...</p>
                                                 </div>
                                                 <div>
-                                                    <p>'."Net : " . $currency . ' ' . number_format($rate,2) . '</p>
-                                                    <p>'."Markup : " . $currency . ' ' . number_format($final,2) . '</p>
+                                                    <p>' . "Net : " . $currency . ' ' . number_format($rate, 2) . '</p>
+                                                    <p>' . "Markup : " . $currency . ' ' . number_format($final, 2) . '</p>
                                                 </div>
                                             </div>
                                             <div class="res_pay">
@@ -1108,8 +1136,8 @@ session_start();
                                                     <p>Rates starting at ...</p>
                                                 </div>
                                                 <div>
-                                                    <p>'."Net : " . $currency . ' ' . number_format($rate,2) . '</p>
-                                                    <p>'."Markup : " . $currency . ' ' . number_format($final,2) . '</p>
+                                                    <p>' . "Net : " . $currency . ' ' . number_format($rate, 2) . '</p>
+                                                    <p>' . "Markup : " . $currency . ' ' . number_format($final, 2) . '</p>
                                                 </div>
                                             </div>
                                             <div class="res_pay">
@@ -1197,8 +1225,8 @@ session_start();
                                                     <p>Rates starting at ...</p>
                                                 </div>
                                                 <div>
-                                                    <p>'."Net : " . $currency . ' ' . number_format($rate,2) . '</p>
-                                                    <p>'."Markup : " . $currency . ' ' . number_format($final,2) . '</p>
+                                                    <p>' . "Net : " . $currency . ' ' . number_format($rate, 2) . '</p>
+                                                    <p>' . "Markup : " . $currency . ' ' . number_format($final, 2) . '</p>
                                                 </div>
                                             </div>
                                             <div class="res_pay">
@@ -1290,8 +1318,8 @@ session_start();
                                                     <p>Rates starting at ...</p>
                                                 </div>
                                                 <div>
-                                                    <p>'."Net : " . $currency . ' ' . number_format($rate,2) . '</p>
-                                                    <p>'."Markup : " . $currency . ' ' . number_format($final,2) . '</p>
+                                                    <p>' . "Net : " . $currency . ' ' . number_format($rate, 2) . '</p>
+                                                    <p>' . "Markup : " . $currency . ' ' . number_format($final, 2) . '</p>
                                                 </div>
                                             </div>
                                             <div class="res_pay">
@@ -1428,58 +1456,65 @@ session_start();
                                                 </div>
                                                 <div class="res_pay">
                                                     <div class="d-flex">
-                                                        <a href="book.php?reference=' . $reference . '&vdNo=Euro" class="btn btn-primary">BOOK NOW</a>
+                                                        <a style="height:2.5rem;" class="btn btn-primary showLocation" id="showLocation_' . $dataSize . '">Show Locations</a>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>';
+                                    echo '
+                                        <div class="row show d-none" id="showQuote_' . $dataSize . '">
+                                            <!-- Pick Up Location -->
+                                            <div class="col-4">
+                                                <div>
+                                                    <p class="text-center mt-3">Pick Up Location</p>
+                                                </div>
+                                                <div id="pickupLocationName_div">';
+                                        foreach ($locations as $row) {
+                                            echo '
+                                                    <p id="locationName" data-hertz="' . htmlspecialchars($row['citycode'], ENT_QUOTES) . '" data-euro="' . htmlspecialchars($row['stationCode'], ENT_QUOTES) . '">' . htmlspecialchars($row['cityaddress'], ENT_QUOTES) . '</p>';
+                                        }
+                                        echo '
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Drop Off Location -->
+                                            <div class="col-4">
+                                                <div>
+                                                    <p class="text-center mt-3">Drop Off Location</p>
+                                                </div>
+                                                <div id="dropoffLocationName_div">';
+                                        foreach ($locations as $row1) {
+                                            echo '
+                                                    <p id="locationName" data-hertz="' . htmlspecialchars($row1['citycode'], ENT_QUOTES) . '" data-euro="' . htmlspecialchars($row1['stationCode'], ENT_QUOTES) . '">' . htmlspecialchars($row1['cityaddress'], ENT_QUOTES) . '</p>';
+                                        }
+                                        echo '
+                                                </div>
+                                            </div>
+
+                                            <!-- Payment Information -->
+                                            <div class="col-4">
+                                                <div>
+                                                    <p class="text-center mt-3">Payment Information</p>
+                                                </div>
+                                                <div class="res_pay">
+                                                    <div>
+                                                        <p>Insurances Package</p>
+                                                        <p>Rates starting at ...</p>
+                                                    </div>
+                                                </div>
+                                                <div class="res_pay">
+                                                    <div class="d-flex">
+                                                        <a href="book.php?reference=' . urlencode($reference) . '&vdNo=Euro" class="btn btn-primary">BOOK NOW</a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>';
                                 }
                             } else {
                                 echo '';
                             }
                         ?>
-                    </div>
-                    <div class="row" id="showLocation">
-                        <div class="col-4">
-                            <div>
-                                <p class="text-center mt-3">Pick Up Location</p>
-                            </div>
-                            <div id="pickupLocationName_div">
-                                <?php foreach ($locations as $row): ?>
-                                    <p id="locationName" dataHertz="<?php echo $row['citycode']; ?>" dataEuro="<?php echo $row['stationCode']; ?>"><?php echo $row['cityaddress']; ?></p>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div>
-                                <p class="text-center mt-3">Drop Off Location</p>
-                            </div>
-                            <div id="dropoffLocationName_div">
-                                <?php foreach ($locations as $row1): ?>
-                                    <p id="locationName" dataHertz="<?php echo $row1['citycode']; ?>" dataEuro="<?php echo $row1['stationCode']; ?>"><?php echo $row1['cityaddress']; ?></p>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div>
-                                <p class="text-center mt-3">Payment Information</p>
-                            </div>
-                            <div class="res_pay">
-                                <div>
-                                    <p>Insurances Package</p>
-                                    <p>Rates starting at ...</p>
-                                </div>
-                                <div>
-
-                                </div>
-                            </div>
-                            <div class="res_pay">
-                                <div class="d-flex">
-                                    <a href="book.php?reference=' . $reference . '&vdNo=Euro" class="btn btn-primary">BOOK NOW</a>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1592,11 +1627,26 @@ session_start();
     document.addEventListener("DOMContentLoaded", function() {
         document.querySelector('.loader_div').classList.replace("d-grid", "d-none");
         document.querySelector('.results_div').classList.remove('d-none');
-        let pickupSelected = false;
-        let dropoffSelected = false;
-        let pickupData = {};
-        let dropoffData = {};
-        let carCategory = "CDAR";
+        // let carCategory = "CDAR";
+        document.querySelectorAll('.showLocation').forEach(function(e) {
+            e.addEventListener('click', function(event) {
+                console.log(event.target.id);
+                var carCategory = event.target.id.replace("showLocation_", "");
+                console.log(carCategory);
+                document.querySelectorAll('.show').forEach(function(el) {
+                    if (el.id === `showQuote_${carCategory}`) {
+                        el.classList.remove('d-none');
+                    } else {
+                        el.classList.add('d-none');
+                    }
+                });
+            });
+        });
+        // document.querySelectorAll('.show').forEach(function(e) {
+        //     if(e.id == `showQuote_ ${carCategory}`) {
+        //         document.getElementById(e.id).classList.remove('d-none');
+        //     }
+        // })
         let infoObject = {
             pickUpDateEuro: <?php echo json_encode(formatDateAndTime($dataArray['pickUpDateTime'])[0]); ?>,
             pickUpTimeEuro: <?php echo json_encode(formatDateAndTime($dataArray['pickUpDateTime'])[1]); ?>,
@@ -1756,52 +1806,54 @@ session_start();
             }
         });
     });
-    // for below results div
-    document.getElementById('pickupLocationName_div').addEventListener('click', function(event) {
-        if (event.target && event.target.id === "locationName") {
-            pickupData = {
-                hertz: event.target.getAttribute('dataHertz'),
-                euro: event.target.getAttribute('dataEuro')
+    (() => {
+        let pickupSelected = false;
+        let dropoffSelected = false;
+        let pickupData = {};
+        let dropoffData = {};
+
+        function handleSelection(event, type) {
+            const targetDiv = type === 'pickup' ? '#pickupLocationName_div' : '#dropoffLocationName_div';
+            const selectedData = {
+                hertz: event.target.getAttribute('data-hertz'),
+                euro: event.target.getAttribute('data-euro'),
             };
-            console.log(`Pickup location: Hertz - ${pickupData.hertz}, Euro - ${pickupData.euro}`);
-            if (pickupData.hertz || pickupData.euro) {
-                let prevSelected = document.querySelector('#pickupLocationName_div .selected');
-                if (prevSelected) {
-                    prevSelected.classList.remove('selected');
-                }
+            console.log(`${type.charAt(0).toUpperCase() + type.slice(1)} location: Hertz - ${selectedData.hertz}, Euro - ${selectedData.euro}`);
+
+            if (selectedData.hertz || selectedData.euro) {
+                let prevSelected = document.querySelector(`${targetDiv} .selected`);
+                if (prevSelected) prevSelected.classList.remove('selected');
                 event.target.classList.add('selected');
-                pickupSelected = true;
+
+                if (type === 'pickup') {
+                    pickupData = selectedData;
+                    pickupSelected = true;
+                } else {
+                    dropoffData = selectedData;
+                    dropoffSelected = true;
+                }
             } else {
-                console.log('Error: Missing data attributes');
+                console.error(`Invalid selection for ${type}`);
+            }
+
+            if (pickupSelected && dropoffSelected) {
+                callGetQuote();
             }
         }
-        if (pickupSelected && dropoffSelected) {
-            callGetQuote();
-        }
+
+        document.getElementById('pickupLocationName_div').addEventListener('click', function (event) {
+            if (event.target && event.target.id === 'locationName') {
+                handleSelection(event, 'pickup');
+            }
+        });
+
+        document.getElementById('dropoffLocationName_div').addEventListener('click', function (event) {
+            if (event.target && event.target.id === 'locationName') {
+                handleSelection(event, 'dropoff');
+            }
+        });
     });
 
-    document.getElementById('dropoffLocationName_div').addEventListener('click', function(event) {
-        if (event.target && event.target.id === "locationName") {
-            dropoffData = {
-                hertz: event.target.getAttribute('dataHertz'),
-                euro: event.target.getAttribute('dataEuro')
-            };
-            console.log(`Dropoff location: Hertz - ${dropoffData.hertz}, Euro - ${dropoffData.euro}`);
-            if (dropoffData.hertz || dropoffData.euro) {
-                let prevSelected = document.querySelector('#dropoffLocationName_div .selected');
-                if (prevSelected) {
-                    prevSelected.classList.remove('selected');
-                }
-                event.target.classList.add('selected');
-                dropoffSelected = true;
-            } else {
-                console.log('Error: Missing data attributes');
-            }
-        }
-        if (pickupSelected && dropoffSelected) {
-            callGetQuote();
-        }
-    });
 
     function callGetQuote() {
         let data = {
@@ -1814,33 +1866,33 @@ session_start();
             dropOffDate: infoObject.dropOffDateEuro
         };
         fetch('getQuote.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log(data);
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
 
-            if (data.quote && data.quote.rate && data.quote.currency) {
-                const rate = data.quote.rate;
-                const currency = data.quote.currency;
+                if (data.quote && data.quote.rate && data.quote.currency) {
+                    const rate = data.quote.rate;
+                    const currency = data.quote.currency;
 
-                const paymentInfoDiv = document.querySelector('.res_pay');
-                if (paymentInfoDiv) {
-                    paymentInfoDiv.innerHTML += `
+                    const paymentInfoDiv = document.querySelector('.res_pay');
+                    if (paymentInfoDiv) {
+                        paymentInfoDiv.innerHTML += `
                         <div>
                             <p>Rental Rate: ${rate} ${currency}</p>
                         </div>
                     `;
+                    }
+                } else {
+                    console.error('Quote details are missing in the response');
                 }
-            } else {
-                console.error('Quote details are missing in the response');
-            }
-        })
-        .catch(error => console.log('Error:', error));
+            })
+            .catch(error => console.log('Error:', error));
     }
 </script>
 

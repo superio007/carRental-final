@@ -121,6 +121,7 @@ error_reporting(E_ALL);
         $pickTime = $_POST['pickTime'];
         $dropDate = $_POST['dropDate'];
         $dropTime = $_POST['dropTime'];
+        $groupName = $_POST['groupName'];
         // Euro details
         $pickupEuro = $_POST['pickCityCodeEuro'];
         $dropOffEuro = $_POST['dropCityCodeEuro'];
@@ -176,6 +177,7 @@ error_reporting(E_ALL);
             $_SESSION['responseZT'] = $responseZT;
             $_SESSION['responseEuro'] = $responseEuro;
             $dataarray = [
+                'groupName' => $groupName,
                 'pickUpDateTime' => $pickUpDateTime,
                 'dropOffDateTime' => $dropOffDateTime,
                 'pickLocation' => $pickup,
@@ -210,6 +212,7 @@ error_reporting(E_ALL);
                     <input type="text" name="pick" id="pickInput" class="form-control" placeholder="Enter city or airport code" autocomplete="off">
                     <input type="hidden" name="pickCityCode" id="pickCityCode"> <!-- Hidden input to store pick-up city code -->
                     <input type="hidden" name="pickCityCodeEuro" id="pickCityCodeEuro"> <!-- Hidden input to store pick-up staion code -->
+                    <input type="hidden" name="groupName" id="groupName">
                     <!-- Suggestion box -->
                     <div id="suggestionBox" class="suggestion-box bg-white border rounded position-absolute" style="display:none;"></div>
                 </div>
@@ -263,6 +266,7 @@ error_reporting(E_ALL);
                     <input type="text" name="pick" id="mobile_pick" list="airport_name" placeholder="CITY OR AIRPORT CODE" autocomplete="off" class="form-control">
                     <input type="hidden" name="pickCityCode" id="mobile_pickCityCode">
                     <input type="hidden" name="pickCityCodeEuro" id="mobile_pickCityCodeEuro">
+                    <input type="hidden" name="groupName" id="groupName">
                     <div id="suggestionBox-mobile" class="suggestionBox-mobile bg-white border rounded position-absolute" style="display:none;"></div>
                 </div>
                 <div class="col-md-6 mb-3">
@@ -347,7 +351,8 @@ error_reporting(E_ALL);
                             // Render only the airport and "All Locations" items
                             for (const city in groupedStations) {
                                 const cityStations = groupedStations[city];
-                                // console.log(cityStations);
+                                var groupName = cityStations.airport.groupName;
+                                
                                 $('#suggestionBox').append(`
                                     <div class="city-header" style="font-weight: bold; padding: 10px 5px; background-color: #f5f5f5;">
                                         ${city} (2 Matches)
@@ -378,12 +383,12 @@ error_reporting(E_ALL);
                                 var stationName = $(this).text().trim();
                                 var stationCode = $(this).data('code');
                                 var stationCodeEuro = $(this).data('station');
-
                                 $('#pickInput').val(stationName);
                                 $('#pickCityCode').val(stationCode);
                                 $('#pickCityCodeEuro').val(stationCodeEuro);
                                 $('#dropInput').val(stationName);
                                 $('#dropCityCode').val(stationCode);
+                                $('#groupName').val(groupName);
                                 $('#dropCityCodeEuro').val(stationCodeEuro);
                                 $('#suggestionBox').hide();
                             });
