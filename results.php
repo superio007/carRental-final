@@ -1343,70 +1343,68 @@ session_start();
                 <div class="container">
                     <div id="vehicle-list-Euro" class="vehicle-list" style="display:none;">
                         <?php
-                            if (isset($xmlresEuro->serviceResponse->carCategoryList->carCategory)) {
-                                // Loop through each vehicle in the carCategoryList
-                                foreach ($xmlresEuro->serviceResponse->carCategoryList->carCategory as $vehicle) {
-                                    // Check if $vehicle and its properties are set before accessing them
-                                    if (isset($vehicle) && isset($vehicle['carCategorySample'])) {
-                                        $name = (string) $vehicle['carCategorySample'];
-                                    } else {
-                                        $name = "Not Available"; // Default value if not set
-                                    }
+                        if (isset($xmlresEuro->serviceResponse->carCategoryList->carCategory)) {
+                            // Loop through each vehicle in the carCategoryList
+                            foreach ($xmlresEuro->serviceResponse->carCategoryList->carCategory as $vehicle) {
+                                // Check if $vehicle and its properties are set before accessing them
+                                if (isset($vehicle) && isset($vehicle['carCategorySample'])) {
+                                    $name = (string) $vehicle['carCategorySample'];
+                                } else {
+                                    $name = "Not Available"; // Default value if not set
+                                }
 
-                                    if (isset($vehicle['carCategorySeats'])) {
-                                        $passengers = (string) $vehicle['carCategorySeats'];
-                                    } else {
-                                        $passengers = "Not Available";
-                                    }
+                                if (isset($vehicle['carCategorySeats'])) {
+                                    $passengers = (string) $vehicle['carCategorySeats'];
+                                } else {
+                                    $passengers = "Not Available";
+                                }
 
-                                    if (isset($vehicle['carCategoryBaggageQuantity'])) {
-                                        $luggage = (string) $vehicle['carCategoryBaggageQuantity'];
-                                    } else {
-                                        $luggage = "Not Available";
-                                    }
+                                if (isset($vehicle['carCategoryBaggageQuantity'])) {
+                                    $luggage = (string) $vehicle['carCategoryBaggageQuantity'];
+                                } else {
+                                    $luggage = "Not Available";
+                                }
 
-                                    if (isset($vehicle['carCategoryAutomatic'])) {
-                                        $transmission = (string) $vehicle['carCategoryAutomatic'] === 'Y' ? 'Automatic' : 'Manual';
-                                    } else {
-                                        $transmission = "Not Specified";
-                                    }
+                                if (isset($vehicle['carCategoryAutomatic'])) {
+                                    $transmission = (string) $vehicle['carCategoryAutomatic'] === 'Y' ? 'Automatic' : 'Manual';
+                                } else {
+                                    $transmission = "Not Specified";
+                                }
 
-                                    // Ensure $xmldata and $xml are valid before accessing them
-                                    $xmldata = getQuote($vehicle['carCategoryCode'], $infoArray);
-                                    if ($xmldata && $xml = simplexml_load_string($xmldata)) {
-                                        $rate = isset($xml->serviceResponse->reservation->quote['basePrice']) ? (float)$xml->serviceResponse->reservation->quote['basePrice'] : 0;
-                                        $carVisualLink = isset($xml->serviceResponse->reservation->links->link['value']) ? (string)$xml->serviceResponse->reservation->links->link['value'] : './images/default-car.png';
-                                        $currency = isset($xml->serviceResponse->reservation->quote['currency']) ? (string)$xml->serviceResponse->reservation->quote['currency'] : 'USD';
-                                    } else {
-                                        $rate = 0; // Default value if XML data isn't available
-                                        $carVisualLink = './images/default-car.png'; // Fallback image
-                                        $currency = 'USD'; // Default currency
-                                    }
+                                // Ensure $xmldata and $xml are valid before accessing them
+                                $xmldata = getQuote($vehicle['carCategoryCode'], $infoArray);
+                                if ($xmldata && $xml = simplexml_load_string($xmldata)) {
+                                    $rate = isset($xml->serviceResponse->reservation->quote['basePrice']) ? (float)$xml->serviceResponse->reservation->quote['basePrice'] : 0;
+                                    $carVisualLink = isset($xml->serviceResponse->reservation->links->link['value']) ? (string)$xml->serviceResponse->reservation->links->link['value'] : './images/default-car.png';
+                                    $currency = isset($xml->serviceResponse->reservation->quote['currency']) ? (string)$xml->serviceResponse->reservation->quote['currency'] : 'USD';
+                                } else {
+                                    $rate = 0; // Default value if XML data isn't available
+                                    $carVisualLink = './images/default-car.png'; // Fallback image
+                                    $currency = 'USD'; // Default currency
+                                }
 
-                                    // Calculate markup safely
-                                    $final = is_numeric($rate) ? calculatePercentage($markUp, $rate) : "Not Available";
-                                    if($xml->serviceResponse->reservation->quote['currency'] != null){
-                                        $currency = (string)$xml->serviceResponse->reservation->quote['currency'];
-                                    }else{
-                                        $currency = "AUD"; 
-                                    }
-                                    $vendor = "Euro"; // Example vendor
-                                    $vendorLogo = "./images/EuroCar.svg"; // Placeholder for vendor logo
-                                    $reference = (string) $vehicle['carCategoryCode']; // Car category code as reference
+                                // Calculate markup safely
+                                $final = is_numeric($rate) ? calculatePercentage($markUp, $rate) : "Not Available";
+                                if ($xml->serviceResponse->reservation->quote['currency'] != null) {
+                                    $currency = (string)$xml->serviceResponse->reservation->quote['currency'];
+                                } else {
+                                    $currency = "AUD";
+                                }
+                                $vendor = "Euro"; // Example vendor
+                                $vendorLogo = "./images/EuroCar.svg"; // Placeholder for vendor logo
+                                $reference = (string) $vehicle['carCategoryCode']; // Car category code as reference
 
-                                    // Use the carCategoryCode (e.g., CDAR, CFAR, etc.) as the data-size value
-                                    $dataSize = (string) $vehicle['carCategoryCode']; 
+                                // Use the carCategoryCode (e.g., CDAR, CFAR, etc.) as the data-size value
+                                $dataSize = (string) $vehicle['carCategoryCode'];
 
-                                    if (is_numeric($final)) {
-                                        $finalTotal = number_format((float)$final, 2);
-                                    }
-                                    else
-                                    {
-                                        $finalTotal = (float)$final;
-                                    }
+                                if (is_numeric($final)) {
+                                    $finalTotal = number_format((float)$final, 2);
+                                } else {
+                                    $finalTotal = (float)$final;
+                                }
 
-                                    // Output the vehicle HTML with the correct data-size
-                                    echo '
+                                // Output the vehicle HTML with the correct data-size
+                                echo '
                                     <div class="res_card res_Euro vehicle-item" data-size="' . $dataSize . '">
                                         <div class="row">
                                             <div class="col-4 d-grid">
@@ -1450,8 +1448,8 @@ session_start();
                                                         <p>Rates starting at ...</p>
                                                     </div>
                                                     <div>
-                                                        <p>'."Net : " . $currency . ' ' . number_format($rate,2) . '</p>
-                                                        <p>'."Markup : " . '<span id="markup" data-size="' . $dataSize . '"> '. $currency . ' ' . $finalTotal .'</span> '. '</p>
+                                                        <p>' . "Net : " . $currency . ' ' . number_format($rate, 2) . '</p>
+                                                        <p>' . "Markup : " . '<span id="markup" data-size="' . $dataSize . '"> ' . $currency . ' ' . $finalTotal . '</span> ' . '</p>
                                                     </div>
                                                 </div>
                                                 <div class="res_pay">
@@ -1462,7 +1460,7 @@ session_start();
                                             </div>
                                         </div>
                                     </div>';
-                                    echo '
+                                echo '
                                         <div class="row show d-none" id="showQuote_' . $dataSize . '">
                                             <!-- Pick Up Location -->
                                             <div class="col-4">
@@ -1470,11 +1468,11 @@ session_start();
                                                     <p class="text-center mt-3">Pick Up Location</p>
                                                 </div>
                                                 <div id="pickupLocationName_div">';
-                                        foreach ($locations as $row) {
-                                            echo '
+                                foreach ($locations as $row) {
+                                    echo '
                                                     <p id="locationName" data-hertz="' . htmlspecialchars($row['citycode'], ENT_QUOTES) . '" data-euro="' . htmlspecialchars($row['stationCode'], ENT_QUOTES) . '">' . htmlspecialchars($row['cityaddress'], ENT_QUOTES) . '</p>';
-                                        }
-                                        echo '
+                                }
+                                echo '
                                                 </div>
                                             </div>
                                             
@@ -1484,11 +1482,11 @@ session_start();
                                                     <p class="text-center mt-3">Drop Off Location</p>
                                                 </div>
                                                 <div id="dropoffLocationName_div">';
-                                        foreach ($locations as $row1) {
-                                            echo '
+                                foreach ($locations as $row1) {
+                                    echo '
                                                     <p id="locationName" data-hertz="' . htmlspecialchars($row1['citycode'], ENT_QUOTES) . '" data-euro="' . htmlspecialchars($row1['stationCode'], ENT_QUOTES) . '">' . htmlspecialchars($row1['cityaddress'], ENT_QUOTES) . '</p>';
-                                        }
-                                        echo '
+                                }
+                                echo '
                                                 </div>
                                             </div>
 
@@ -1497,7 +1495,7 @@ session_start();
                                                 <div>
                                                     <p class="text-center mt-3">Payment Information</p>
                                                 </div>
-                                                <div class="res_pay">
+                                                <div class="res_pay" id="Pay_div">
                                                     <div>
                                                         <p>Insurances Package</p>
                                                         <p>Rates starting at ...</p>
@@ -1510,10 +1508,10 @@ session_start();
                                                 </div>
                                             </div>
                                         </div>';
-                                }
-                            } else {
-                                echo '';
                             }
+                        } else {
+                            echo '';
+                        }
                         ?>
                     </div>
                 </div>
@@ -1542,15 +1540,13 @@ session_start();
                                 $vendorLogo = "./images/EuroCar.svg"; // Placeholder for vendor logo
                                 $reference = (string) $vehicle['carCategoryCode']; // Car category code as reference
 
-                                
+
                                 // Use the carCategoryCode (e.g., CDAR, CFAR, etc.) as the data-size value
-                                $dataSize = (string) $vehicle['carCategoryCode']; 
+                                $dataSize = (string) $vehicle['carCategoryCode'];
 
                                 if (is_numeric($final)) {
                                     $finalTotal = number_format((float)$final, 2);
-                                }
-                                else
-                                {
+                                } else {
                                     $finalTotal = (float)$final;
                                 }
 
@@ -1599,8 +1595,8 @@ session_start();
                                                     <p>Rates starting at ...</p>
                                                 </div>
                                                 <div>
-                                                    <p>'."Net : " . $currency . ' ' . number_format($rate,2) . '</p>
-                                                    <p>'."Markup : " . '<span id="markup" data-size="' . $dataSize . '"> '. $currency . ' ' . $finalTotal .'</span> '. '</p>
+                                                    <p>' . "Net : " . $currency . ' ' . number_format($rate, 2) . '</p>
+                                                    <p>' . "Markup : " . '<span id="markup" data-size="' . $dataSize . '"> ' . $currency . ' ' . $finalTotal . '</span> ' . '</p>
                                                 </div>
                                             </div>
                                             <div class="res_pay">
@@ -1669,10 +1665,10 @@ session_start();
 
         // Gather processed data with data-size and prices from #markup elements
         document.querySelectorAll('#markup').forEach(function(td) {
-            if (td.innerText !== "000.00" && td.hasAttribute('data-size')) { 
+            if (td.innerText !== "000.00" && td.hasAttribute('data-size')) {
                 const dataSize = td.getAttribute('data-size').split(',');
                 const price = td.innerText.trim();
-                
+
                 for (let category in categoriesEuro) {
                     if (categoriesEuro[category].some(code => dataSize.includes(code))) {
                         processedData.push({
@@ -1690,7 +1686,7 @@ session_start();
 
         const uniqueCategoryData = processedData.reduce((accumulator, current) => {
             const existingCategory = accumulator.find(item => item.category === current.category);
-            
+
             if (!existingCategory) {
                 accumulator.push(current);
             }
@@ -1704,7 +1700,7 @@ session_start();
             document.querySelectorAll('.Euro').forEach((td) => {
                 if (td.hasAttribute('data-size')) {
                     const dataSize = td.getAttribute('data-size').split(',');
-                    
+
                     // Check if any code in dataSize matches the unique item codes
                     if (dataSize.some(code => uniqueItem.dataSize.includes(code))) {
                         td.innerHTML = uniqueItem.price;
@@ -1712,8 +1708,119 @@ session_start();
                 }
             });
         });
-        
+        let carCategory = null; // Declare globally to access across functions
+        let pickupSelected = false;
+        let dropoffSelected = false;
+        let pickupData = {};
+        let dropoffData = {};
+
+        document.querySelectorAll('.showLocation').forEach(function (e) {
+            e.addEventListener('click', function (event) {
+                carCategory = event.target.id.replace("showLocation_", ""); // Assign to global variable
+                console.log("Selected car category:", carCategory);
+
+                document.querySelectorAll('.show').forEach(function (el) {
+                    if (el.id === `showQuote_${carCategory}`) {
+                        el.classList.remove('d-none');
+                    } else {
+                        el.classList.add('d-none');
+                    }
+                });
+            });
+        });
+
+        function handleSelection(event, type) {
+            const targetDiv = type === 'pickup' ? '#pickupLocationName_div' : '#dropoffLocationName_div';
+            const selectedData = {
+                hertz: event.target.getAttribute('data-hertz'),
+                euro: event.target.getAttribute('data-euro'),
+            };
+
+            console.log(`${type.charAt(0).toUpperCase() + type.slice(1)} location: Hertz - ${selectedData.hertz}, Euro - ${selectedData.euro}`);
+
+            if (selectedData.hertz || selectedData.euro) {
+                const prevSelected = document.querySelector(`${targetDiv} .selected`);
+                if (prevSelected) prevSelected.classList.remove('selected');
+                event.target.classList.add('selected');
+
+                if (type === 'pickup') {
+                    pickupData = selectedData;
+                    pickupSelected = true;
+                } else {
+                    dropoffData = selectedData;
+                    dropoffSelected = true;
+                }
+
+                console.log("Pickup Data:", pickupData);
+                console.log("Dropoff Data:", dropoffData);
+            }
+
+            if (pickupSelected && dropoffSelected) {
+                callGetQuote(); // Call function after selection
+            }
+        }
+
+        document.getElementById('pickupLocationName_div').addEventListener('click', function (event) {
+            if (event.target && event.target.matches('#locationName')) {
+                handleSelection(event, 'pickup');
+            }
+        });
+
+        document.getElementById('dropoffLocationName_div').addEventListener('click', function (event) {
+            if (event.target && event.target.matches('#locationName')) {
+                handleSelection(event, 'dropoff');
+            }
+        });
+
+        function callGetQuote() {
+            console.log("Calling getQuote with:");
+            console.log("Car Category:", carCategory);
+            console.log("Pickup Data:", pickupData);
+            console.log("Dropoff Data:", dropoffData);
+
+            if (!carCategory) {
+                console.error("Car category is not selected!");
+                return;
+            }
+
+            const data = {
+                carCategory: carCategory,
+                pickup: pickupData,
+                dropoff: dropoffData,
+                pickUpTime: infoObject.pickUpTimeEuro,
+                dropOffTime: infoObject.dropOffTimeEuro,
+                pickUpDate: infoObject.pickUpDateEuro,
+                dropOffDate: infoObject.dropOffDateEuro
+            };
+
+            fetch('getQuote.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Quote Response:", data);
+                    if (data.quote && data.quote.rate && data.quote.currency) {
+                        const rate = data.quote.rate;
+                        const currency = data.quote.currency;
+                        const paymentInfoDiv = document.querySelector('#Pay_div');
+                        if (paymentInfoDiv) {
+                            paymentInfoDiv.innerHTML += `
+                                <div>
+                                    <p>Rental Rate: ${rate} ${currency}</p>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        console.error('Quote details are missing in the response');
+                    }
+                })
+                .catch(error => console.log('Error:', error));
+        }
+
     });
+
     document.querySelectorAll('td.text-center').forEach(function(td) {
         td.addEventListener('click', function() {
             var selectedSizes = td.getAttribute('data-size').split(','); // Get the list of sizes for the selected category
@@ -1771,7 +1878,7 @@ session_start();
             });
 
             // Show the specific vendor's vehicle list
-            var vendorList = document.getElementById('vehicle-list-' + vendorRow  + '-mobile');
+            var vendorList = document.getElementById('vehicle-list-' + vendorRow + '-mobile');
             vendorList.style.display = 'block';
 
             // Hide all vehicles in this list first
@@ -1806,94 +1913,6 @@ session_start();
             }
         });
     });
-    (() => {
-        let pickupSelected = false;
-        let dropoffSelected = false;
-        let pickupData = {};
-        let dropoffData = {};
-
-        function handleSelection(event, type) {
-            const targetDiv = type === 'pickup' ? '#pickupLocationName_div' : '#dropoffLocationName_div';
-            const selectedData = {
-                hertz: event.target.getAttribute('data-hertz'),
-                euro: event.target.getAttribute('data-euro'),
-            };
-            console.log(`${type.charAt(0).toUpperCase() + type.slice(1)} location: Hertz - ${selectedData.hertz}, Euro - ${selectedData.euro}`);
-
-            if (selectedData.hertz || selectedData.euro) {
-                let prevSelected = document.querySelector(`${targetDiv} .selected`);
-                if (prevSelected) prevSelected.classList.remove('selected');
-                event.target.classList.add('selected');
-
-                if (type === 'pickup') {
-                    pickupData = selectedData;
-                    pickupSelected = true;
-                } else {
-                    dropoffData = selectedData;
-                    dropoffSelected = true;
-                }
-            } else {
-                console.error(`Invalid selection for ${type}`);
-            }
-
-            if (pickupSelected && dropoffSelected) {
-                callGetQuote();
-            }
-        }
-
-        document.getElementById('pickupLocationName_div').addEventListener('click', function (event) {
-            if (event.target && event.target.id === 'locationName') {
-                handleSelection(event, 'pickup');
-            }
-        });
-
-        document.getElementById('dropoffLocationName_div').addEventListener('click', function (event) {
-            if (event.target && event.target.id === 'locationName') {
-                handleSelection(event, 'dropoff');
-            }
-        });
-    });
-
-
-    function callGetQuote() {
-        let data = {
-            carCategory: carCategory,
-            pickup: pickupData,
-            dropoff: dropoffData,
-            pickUpTime: infoObject.pickUpTimeEuro,
-            dropOffTime: infoObject.dropOffTimeEuro,
-            pickUpDate: infoObject.pickUpDateEuro,
-            dropOffDate: infoObject.dropOffDateEuro
-        };
-        fetch('getQuote.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log(data);
-
-                if (data.quote && data.quote.rate && data.quote.currency) {
-                    const rate = data.quote.rate;
-                    const currency = data.quote.currency;
-
-                    const paymentInfoDiv = document.querySelector('.res_pay');
-                    if (paymentInfoDiv) {
-                        paymentInfoDiv.innerHTML += `
-                        <div>
-                            <p>Rental Rate: ${rate} ${currency}</p>
-                        </div>
-                    `;
-                    }
-                } else {
-                    console.error('Quote details are missing in the response');
-                }
-            })
-            .catch(error => console.log('Error:', error));
-    }
 </script>
 
 </html>
